@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Request Equipment Borrowing - CBA IMS{% endblock %}
+{% block page_title %}Request Equipment Borrowing{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                {% if user.role == 'FACULTY' %}
+                    <li class="breadcrumb-item"><a href="{% url 'borrowing:my_borrowings' %}" class="text-decoration-none">My Borrowings</a></li>
+                {% else %}
+                    <li class="breadcrumb-item"><a href="{% url 'borrowing:request_list' %}" class="text-decoration-none">Borrowings</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active" aria-current="page">Request Equipment</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-plus text-primary fs-5"></i>
+                    <h5 class="card-title mb-0 fw-bold">Request Equipment Borrowing</h5>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                {% if initial_asset %}
+                <!-- Selected Asset Banner -->
+                <div class="d-flex align-items-center gap-3 p-3 bg-light rounded border mb-4">
+                    <div class="rounded bg-white border p-2 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-box-seam fs-3"></i>
+                    </div>
+                    <div>
+                        <div class="font-monospace fw-bold text-primary">{{ initial_asset.asset_code }}</div>
+                        <h6 class="fw-bold mb-0 text-dark">{{ initial_asset.item_name }}</h6>
+                        <small class="text-muted">
+                            {{ initial_asset.department.name }} &bull; {{ initial_asset.current_location.name|default:"Department Storage" }}
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger p-3 mb-3">
+                        {% for err in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if 'borrower' in form.fields %}
+                    <div class="mb-3">
+                        <label for="{{ form.borrower.id_for_label }}" class="form-label fw-semibold">
+                            Borrower / Accountable Employee <span class="text-danger">*</span>
+                        </label>
+                        {{ form.borrower }}
+                        {% if form.borrower.errors %}
+                            <div class="text-danger small mt-1">{{ form.borrower.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.asset.id_for_label }}" class="form-label fw-semibold">
+                            Select Equipment <span class="text-danger">*</span>
+                        </label>
+                        {{ form.asset }}
+                        {% if form.asset.errors %}
+                            <div class="text-danger small mt-1">{{ form.asset.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small">Only available durable assets in college storage are shown.</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="{{ form.requested_start.id_for_label }}" class="form-label fw-semibold">
+                                From (Start Time) <span class="text-danger">*</span>
+                            </label>
+                            {{ form.requested_start }}
+                            {% if form.requested_start.errors %}
+                                <div class="text-danger small mt-1">{{ form.requested_start.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="{{ form.requested_return.id_for_label }}" class="form-label fw-semibold">
+                                Expected Return <span class="text-danger">*</span>
+                            </label>
+                            {{ form.requested_return }}
+                            {% if form.requested_return.errors %}
+                                <div class="text-danger small mt-1">{{ form.requested_return.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.purpose.id_for_label }}" class="form-label fw-semibold">
+                            Purpose of Use <span class="text-danger">*</span>
+                        </label>
+                        {{ form.purpose }}
+                        {% if form.purpose.errors %}
+                            <div class="text-danger small mt-1">{{ form.purpose.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-semibold">
+                            Special Instructions / Remarks
+                        </label>
+                        {{ form.remarks }}
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-send me-1"></i> Submit Borrowing Request
+                        </button>
+                        {% if user.role == 'FACULTY' %}
+                            <a href="{% url 'borrowing:my_borrowings' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% else %}
+                            <a href="{% url 'borrowing:request_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

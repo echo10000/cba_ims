@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Approve Disposal {{ disposal.disposal_number }} - CBA IMS{% endblock %}
+{% block page_title %}Approve Disposal: {{ disposal.disposal_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="mb-3">
+            <a href="{% url 'disposals:disposal_detail' pk=disposal.pk %}" class="text-decoration-none text-muted small">
+                <i class="bi bi-arrow-left me-1"></i> Back to Disposal Record
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold fs-6 text-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>Authorize Disposal Request
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info border-0 mb-4">
+                    <div class="fw-bold mb-1">{{ disposal.asset.item_name }} ({{ disposal.asset.asset_code }})</div>
+                    <div class="small">Reason: {{ disposal.reason }}</div>
+                </div>
+                <p class="text-muted small mb-4">
+                    Approving this request authorizes physical disposal execution.
+                    The asset's status remains unchanged until disposal is formally marked as completed.
+                </p>
+                {% crispy form %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

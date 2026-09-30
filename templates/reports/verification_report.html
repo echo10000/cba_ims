@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Physical Verification</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold">
+            {% if mode == 'mismatches' %}
+            <i class="bi bi-exclamation-diamond text-danger me-2"></i>Physical Verification Discrepancies
+            {% elif mode == 'never_verified' %}
+            <i class="bi bi-question-circle text-warning me-2"></i>Never Verified Assets Audit
+            {% else %}
+            <i class="bi bi-clipboard-check text-primary me-2"></i>Physical Inventory Verification Audits
+            {% endif %}
+        </h4>
+        <small class="text-muted">On-site barcode and visual audit logs verifying location, status, and physical existence</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1{% if query_string %}&{{ query_string }}{% endif %}" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Mode Switch Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if mode == 'all' or not mode %}active fw-bold{% endif %}" href="{% url 'reports:verification' %}">
+            <i class="bi bi-clipboard-check me-1"></i> All Audits
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if mode == 'mismatches' %}active fw-bold text-danger{% endif %}" href="{% url 'reports:verification_mismatches' %}">
+            <i class="bi bi-exclamation-triangle me-1"></i> Discrepancies & Mismatches
+            {% if summary.location_mismatch or summary.status_mismatch or summary.not_found %}
+            <span class="badge bg-danger ms-1">{{ summary.location_mismatch|add:summary.status_mismatch|add:summary.not_found }}</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if mode == 'never_verified' %}active fw-bold text-warning{% endif %}" href="{% url 'reports:verification_never_verified' %}">
+            <i class="bi bi-question-circle me-1"></i> Never Verified Assets
+            {% if summary.never_verified > 0 %}
+            <span class="badge bg-warning text-dark ms-1">{{ summary.never_verified }}</span>
+            {% endif %}
+        </a>
+    </li>
+</ul>
+
+<!-- Summary Metric Cards -->
+<div class="row g-2 mb-4">
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-primary text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Audited Events</div>
+                <div class="fs-4 fw-bold">{{ summary.verified_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-success text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Matched</div>
+                <div class="fs-4 fw-bold">{{ summary.matched }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-warning text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Location Mismatch</div>
+                <div class="fs-4 fw-bold">{{ summary.location_mismatch }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-info text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Status Mismatch</div>
+                <div class="fs-4 fw-bold">{{ summary.status_mismatch }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-danger text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Missing / Not Found</div>
+                <div class="fs-4 fw-bold">{{ summary.not_found }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-dark text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Never Verified</div>
+                <div class="fs-4 fw-bold">{{ summary.never_verified }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            {% if mode != 'all' %}<input type="hidden" name="mode" value="{{ mode }}">{% endif %}
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Search Keywords</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Code, Item, Auditor, Notes..." value="{{ active_filters.q }}">
+                </div>
+            </div>
+            {% if departments|length > 1 %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Department</label>
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.pk }}" {% if active_filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if mode != 'never_verified' and mode != 'mismatches' %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Audit Result</label>
+                <select name="result" class="form-select form-select-sm">
+                    <option value="">All Results</option>
+                    {% for val, label in results %}
+                    <option value="{{ val }}" {% if active_filters.result == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ active_filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ active_filters.date_to }}">
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% if mode == 'mismatches' %}{% url 'reports:verification_mismatches' %}{% elif mode == 'never_verified' %}{% url 'reports:verification_never_verified' %}{% else %}{% url 'reports:verification' %}{% endif %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Audit Records</h6>
+        <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} item(s) found</span>
+    </div>
+
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    {% if mode == 'never_verified' %}
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Property #</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Current Location</th>
+                    <th scope="col">Condition</th>
+                    <th scope="col">Status</th>
+                    {% else %}
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Expected Dept</th>
+                    <th scope="col">Observed Dept</th>
+                    <th scope="col">Expected Location</th>
+                    <th scope="col">Observed Location</th>
+                    <th scope="col">Audit Result</th>
+                    <th scope="col">Audited At</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    {% if mode == 'never_verified' %}
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' r.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ r.asset_code }}
+                        </a>
+                    </td>
+                    <td><small class="text-muted">{{ r.property_number|default:"—" }}</small></td>
+                    <td><div class="fw-medium">{{ r.item_name }}</div></td>
+                    <td><small>{{ r.category.name|default:"—" }}</small></td>
+                    <td><small>{{ r.department.name|default:"—" }}</small></td>
+                    <td><small>{{ r.current_location.name|default:"—" }}</small></td>
+                    <td><span class="badge bg-secondary">{{ r.get_condition_display }}</span></td>
+                    <td><span class="badge bg-info text-dark">{{ r.get_status_display }}</span></td>
+                    {% else %}
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' r.asset.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ r.asset.asset_code }}
+                        </a>
+                    </td>
+                    <td><div class="fw-medium">{{ r.asset.item_name }}</div></td>
+                    <td><small>{{ r.expected_department.name|default:"—" }}</small></td>
+                    <td>
+                        <small class="{% if r.expected_department != r.observed_department %}text-danger fw-bold{% endif %}">
+                            {{ r.observed_department.name|default:"—" }}
+                        </small>
+                    </td>
+                    <td><small>{{ r.expected_location.name|default:"—" }}</small></td>
+                    <td>
+                        <small class="{% if r.expected_location != r.observed_location %}text-danger fw-bold{% endif %}">
+                            {{ r.observed_location.name|default:"—" }}
+                        </small>
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if r.result == 'MATCH' or r.result == 'VERIFIED' %}bg-success
+                            {% elif r.result == 'MISMATCH_LOCATION' %}bg-warning text-dark
+                            {% elif r.result == 'MISMATCH_STATUS' %}bg-info text-dark
+                            {% elif r.result == 'NOT_FOUND' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ r.get_result_display }}
+                        </span>
+                    </td>
+                    <td><small class="text-nowrap">{{ r.verified_at|date:"Y-m-d H:i" }}</small></td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        No verification records found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards List -->
+    <div class="d-md-none p-3">
+        {% for r in records %}
+        <div class="card mb-3 border shadow-sm">
+            <div class="card-body p-3">
+                {% if mode == 'never_verified' %}
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <a href="{% url 'inventory:asset_detail' r.pk %}" class="fw-bold text-primary">
+                        {{ r.asset_code }}
+                    </a>
+                    <span class="badge bg-warning text-dark">Never Verified</span>
+                </div>
+                <div class="fw-semibold">{{ r.item_name }}</div>
+                <div class="small text-muted">{{ r.department.name|default:"—" }} &bull; {{ r.current_location.name|default:"—" }}</div>
+                {% else %}
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <a href="{% url 'inventory:asset_detail' r.asset.pk %}" class="fw-bold text-primary">
+                        {{ r.asset.asset_code }}
+                    </a>
+                    <span class="badge 
+                        {% if r.result == 'MATCH' or r.result == 'VERIFIED' %}bg-success
+                        {% elif r.result == 'MISMATCH_LOCATION' %}bg-warning text-dark
+                        {% elif r.result == 'NOT_FOUND' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ r.get_result_display }}
+                    </span>
+                </div>
+                <div class="fw-semibold">{{ r.asset.item_name }}</div>
+                <div class="small text-muted">Audited: {{ r.verified_at|date:"Y-m-d" }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">No records found.</div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

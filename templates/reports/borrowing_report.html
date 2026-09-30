@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Equipment Borrowing</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold">
+            {% if overdue_only %}
+            <i class="bi bi-clock-history text-danger me-2"></i>Overdue Equipment Loans Alert
+            {% else %}
+            <i class="bi bi-hand-index text-primary me-2"></i>Temporary Equipment Loans & Reservations
+            {% endif %}
+        </h4>
+        <small class="text-muted">Tracking short-term asset lending, due dates, return deadlines, and delinquency status</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1{% if query_string %}&{{ query_string }}{% endif %}" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if not overdue_only %}active fw-bold{% endif %}" href="{% url 'reports:borrowing' %}">
+            <i class="bi bi-list-check me-1"></i> All Loan Records
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if overdue_only %}active fw-bold text-danger{% endif %}" href="{% url 'reports:borrowing' %}?overdue=1">
+            <i class="bi bi-exclamation-octagon-fill me-1"></i> Overdue Loans Only
+            {% if summary.overdue > 0 %}
+            <span class="badge bg-danger ms-1">{{ summary.overdue }}</span>
+            {% endif %}
+        </a>
+    </li>
+</ul>
+
+<!-- Summary Metric Cards -->
+<div class="row g-2 mb-4">
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-primary text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Total Loans</div>
+                <div class="fs-4 fw-bold">{{ summary.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-warning text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Pending</div>
+                <div class="fs-4 fw-bold">{{ summary.pending }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-info text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Active Loans</div>
+                <div class="fs-4 fw-bold">{{ summary.active }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-danger text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Overdue Loans</div>
+                <div class="fs-4 fw-bold">{{ summary.overdue }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-success text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Returned</div>
+                <div class="fs-4 fw-bold">{{ summary.returned }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-secondary text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Cancelled</div>
+                <div class="fs-4 fw-bold">{{ summary.cancelled_or_rejected }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            {% if overdue_only %}<input type="hidden" name="overdue" value="1">{% endif %}
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Search Keywords</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Loan ID, Borrower, Item, Code..." value="{{ active_filters.q }}">
+                </div>
+            </div>
+            {% if departments|length > 1 %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Department</label>
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.pk }}" {% if active_filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if not overdue_only %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for val, label in statuses %}
+                    <option value="{{ val }}" {% if active_filters.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ active_filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ active_filters.date_to }}">
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'reports:borrowing' %}{% if overdue_only %}?overdue=1{% endif %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Borrowing Records</h6>
+        <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} item(s) found</span>
+    </div>
+
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Loan ID</th>
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Borrower</th>
+                    <th scope="col">Start Date</th>
+                    <th scope="col">Due Date</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Effective Condition</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in borrowings %}
+                <tr {% if b.is_overdue %}class="table-danger"{% endif %}>
+                    <td><span class="fw-bold">{{ b.reference_number|default:b.pk }}</span></td>
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' b.asset.pk %}" class="fw-semibold text-primary text-decoration-none">
+                            {{ b.asset.asset_code }}
+                        </a>
+                    </td>
+                    <td><div class="fw-medium">{{ b.asset.item_name }}</div></td>
+                    <td>
+                        <div class="fw-bold">{{ b.borrower.full_name }}</div>
+                        <small class="text-muted">{{ b.borrower.department.name|default:"—" }}</small>
+                    </td>
+                    <td><small>{{ b.start_date|date:"Y-m-d"|default:b.created_at|date:"Y-m-d" }}</small></td>
+                    <td>
+                        <small class="fw-semibold {% if b.is_overdue %}text-danger{% endif %}">
+                            {{ b.expected_return_date|date:"Y-m-d"|default:b.end_date|date:"Y-m-d" }}
+                        </small>
+                    </td>
+                    <td>
+                        {% if b.is_overdue %}
+                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>OVERDUE</span>
+                        {% elif b.status == 'RETURNED' %}
+                        <span class="badge bg-success">RETURNED</span>
+                        {% elif b.status == 'RELEASED' %}
+                        <span class="badge bg-info text-dark">ACTIVE LOAN</span>
+                        {% elif b.status == 'PENDING' %}
+                        <span class="badge bg-warning text-dark">PENDING</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ b.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ b.purpose|truncatechars:35|default:"—" }}</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        No equipment borrowing records found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards List -->
+    <div class="d-md-none p-3">
+        {% for b in borrowings %}
+        <div class="card mb-3 border shadow-sm {% if b.is_overdue %}border-danger{% endif %}">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-bold">{{ b.reference_number|default:b.pk }}</span>
+                    {% if b.is_overdue %}
+                    <span class="badge bg-danger">OVERDUE</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ b.get_status_display }}</span>
+                    {% endif %}
+                </div>
+                <div class="fw-semibold text-primary mb-1">
+                    <a href="{% url 'inventory:asset_detail' b.asset.pk %}" class="text-decoration-none">
+                        {{ b.asset.asset_code }} - {{ b.asset.item_name }}
+                    </a>
+                </div>
+                <div class="small mb-1"><span class="text-muted">Borrower:</span> {{ b.borrower.full_name }}</div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top small">
+                    <span class="text-muted">Due: {{ b.expected_return_date|date:"Y-m-d"|default:b.end_date|date:"Y-m-d" }}</span>
+                    <span class="text-muted">{{ b.borrower.department.name|default:"—" }}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">
+            No equipment borrowing records found.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Assets by Department - CBA IMS{% endblock %}
+{% block page_title %}Assets by Department Summary{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'reports:asset_inventory' %}">Assets</a></li>
+                <li class="breadcrumb-item active" aria-current="page">By Department</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold"><i class="bi bi-building text-primary me-2"></i>Departmental Asset Distribution</h4>
+        <small class="text-muted">High-level asset counts, operational statuses, and capital value by academic and administrative units</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-table text-primary me-2"></i>Department Summary Breakdown</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Department</th>
+                    <th scope="col" class="text-center">Total Assets</th>
+                    <th scope="col" class="text-center text-success">Active</th>
+                    <th scope="col" class="text-center text-primary">Available</th>
+                    <th scope="col" class="text-center text-warning">Assigned</th>
+                    <th scope="col" class="text-center text-info">Borrowed</th>
+                    <th scope="col" class="text-center text-secondary">Maintenance</th>
+                    <th scope="col" class="text-center text-danger">Damaged</th>
+                    <th scope="col" class="text-center text-muted">Disposed</th>
+                    <th scope="col" class="text-end">Active Value (₱)</th>
+                    <th scope="col" class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>
+                        <div class="fw-bold">{{ item.department.name }}</div>
+                        <small class="text-muted">{{ item.department.code }}</small>
+                    </td>
+                    <td class="text-center fw-bold">{{ item.counts.total }}</td>
+                    <td class="text-center fw-semibold text-success">{{ item.counts.active }}</td>
+                    <td class="text-center text-primary">{{ item.counts.available }}</td>
+                    <td class="text-center text-warning">{{ item.counts.assigned }}</td>
+                    <td class="text-center text-info">{{ item.counts.borrowed }}</td>
+                    <td class="text-center text-secondary">{{ item.counts.maintenance }}</td>
+                    <td class="text-center text-danger">{{ item.counts.damaged }}</td>
+                    <td class="text-center text-muted">{{ item.counts.disposed }}</td>
+                    <td class="text-end fw-bold text-nowrap">₱{{ item.counts.total_value|floatformat:2 }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'reports:asset_inventory' %}?department={{ item.department.pk }}&scope=active" class="btn btn-sm btn-outline-primary" title="View department inventory">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> View Assets
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center py-5 text-muted">
+                        No department asset records available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

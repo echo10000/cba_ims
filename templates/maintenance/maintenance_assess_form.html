@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="mb-3">
+            <a href="{% url 'maintenance:maintenance_detail' case.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Case {{ case.case_number }}
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary-subtle p-2 me-3 text-primary">
+                        <i class="bi bi-clipboard-check fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold">Technical Diagnostic Assessment</h5>
+                        <small class="text-muted">Document findings, severity rating, and recommended course of action for Case {{ case.case_number }}</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <!-- Case & Asset Summary Card -->
+                <div class="alert alert-light border shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold fs-6">{{ asset.item_name }}</div>
+                            <div class="small text-muted font-monospace">{{ asset.asset_code }} &bull; {{ asset.department.code|default:"CBA" }}</div>
+                            <div class="mt-2 small">
+                                <strong>Reported Defect:</strong> {{ case.issue_title }}
+                            </div>
+                        </div>
+                        <span class="badge bg-secondary">Current Status: {{ case.get_status_display }}</span>
+                    </div>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle me-1"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.severity.id_for_label }}" class="form-label fw-semibold">
+                            Operational Severity Evaluation <span class="text-danger">*</span>
+                        </label>
+                        {{ form.severity }}
+                        <div class="form-text text-muted">
+                            Low (minor cosmetic/non-blocking), Medium (degraded performance), High (unusable), Critical (safety risk or total shutdown).
+                        </div>
+                        {% if form.severity.errors %}
+                            <div class="text-danger small mt-1">{{ form.severity.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.diagnosis.id_for_label }}" class="form-label fw-semibold">
+                            Technical Diagnosis & Root Cause <span class="text-danger">*</span>
+                        </label>
+                        {{ form.diagnosis }}
+                        <div class="form-text text-muted">
+                            Describe physical inspection findings, failed components, diagnostic tests performed, or error codes.
+                        </div>
+                        {% if form.diagnosis.errors %}
+                            <div class="text-danger small mt-1">{{ form.diagnosis.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.recommended_action.id_for_label }}" class="form-label fw-semibold">
+                            Recommended Remediation Plan
+                        </label>
+                        {{ form.recommended_action }}
+                        <div class="form-text text-muted">
+                            E.g., Component replacement, in-house servicing, specialized vendor repair, or unserviceable disposal recommendation.
+                        </div>
+                        {% if form.recommended_action.errors %}
+                            <div class="text-danger small mt-1">{{ form.recommended_action.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-semibold">
+                            Assessment Remarks (Optional)
+                        </label>
+                        {{ form.remarks }}
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{% url 'maintenance:maintenance_detail' case.pk %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle me-1"></i> Save Assessment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

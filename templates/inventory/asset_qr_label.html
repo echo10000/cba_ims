@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Label - {{ asset.asset_code }} - CBA IMS{% endblock %}
+{% block page_title %}Print Asset QR Label{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Screen View Preview Card */
+    .label-preview-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem 1rem;
+        background: #e9ecef;
+        border-radius: 8px;
+    }
+    .asset-qr-label {
+        width: 340px;
+        min-height: 180px;
+        background: #fff;
+        border: 2px dashed #495057;
+        border-radius: 8px;
+        padding: 14px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        color: #000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .label-qr-box {
+        flex: 0 0 110px;
+        text-align: center;
+    }
+    .label-qr-box img {
+        width: 110px;
+        height: 110px;
+        display: block;
+    }
+    .label-meta-box {
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+    .label-inst-title {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+        margin-bottom: 2px;
+        line-height: 1.1;
+    }
+    .label-asset-code {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #000;
+        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+    }
+    .label-item-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 4px;
+        line-height: 1.2;
+        max-height: 2.4em;
+        overflow: hidden;
+    }
+    .label-property-no {
+        font-size: 0.72rem;
+        color: #495057;
+        margin-bottom: 2px;
+    }
+    .label-dept {
+        font-size: 0.7rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Print Stylesheet */
+    @media print {
+        body, html {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        #desktop-sidebar, .navbar-top, .offcanvas, .btn, .breadcrumb, footer, .screen-controls {
+            display: none !important;
+        }
+        #main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .main-container {
+            padding: 0 !important;
+        }
+        .label-preview-container {
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        .asset-qr-label {
+            border: 1px solid #000 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+            margin: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'inventory:asset_list' %}" class="text-decoration-none">Assets</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'inventory:asset_detail' asset.asset_code %}" class="text-decoration-none">{{ asset.asset_code }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">QR Label</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold">
+                    <i class="bi bi-tag-fill text-primary me-2"></i>Physical Asset QR Sticker
+                </h5>
+                <div class="screen-controls d-flex gap-2">
+                    <a href="{% url 'inventory:asset_detail' asset.asset_code %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Asset
+                    </a>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="window.print();">
+                        <i class="bi bi-printer me-1"></i> Print Label
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="alert alert-info small mb-4 screen-controls">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Preview shown below. Standard dimensions fit standard adhesive thermal label rolls (70mm &times; 40mm) or A4 sticker sheets.
+                    Sensitive details (custody, purchase cost) are deliberately omitted from the physical label for privacy and security.
+                </div>
+
+                <!-- Sticker Label Preview -->
+                <div class="label-preview-container">
+                    <div class="asset-qr-label">
+                        <div class="label-qr-box">
+                            <img src="{{ qr_data_uri }}" alt="QR Code {{ asset.asset_code }}">
+                        </div>
+                        <div class="label-meta-box">
+                            <div class="label-inst-title">College of Business Admin</div>
+                            <div class="label-asset-code">{{ asset.asset_code }}</div>
+                            <div class="label-item-name">{{ asset.item_name }}</div>
+                            {% if asset.property_number %}
+                            <div class="label-property-no">
+                                <strong>Prop No:</strong> {{ asset.property_number }}
+                            </div>
+                            {% endif %}
+                            <div class="label-dept">
+                                <i class="bi bi-building"></i> {{ asset.department.name }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3 screen-controls">
+                    <small class="text-muted font-monospace">Payload: /q/assets/{{ asset.asset_code }}/</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

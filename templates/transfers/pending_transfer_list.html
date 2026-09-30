@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Pending Asset Transfers - CBA IMS{% endblock %}
+{% block page_title %}Pending Asset Transfers{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h4 class="mb-1 fw-bold">Asset Movement &amp; Transfers</h4>
+        <p class="text-muted mb-0 small">Active relocation requests awaiting administrative authorization and physical confirmation.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if request.user.is_admin %}
+        <a href="{% url 'transfers:transfer_request' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Request Transfer
+        </a>
+        {% endif %}
+        <a href="{% url 'transfers:history_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-clock-history me-1"></i> Movement History
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="get" class="search-filter-bar d-flex flex-wrap align-items-center">
+            <!-- Search Query -->
+            <div class="input-group search-input flex-grow-1" style="min-width: 220px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" class="form-control border-start-0" placeholder="Search asset code, item, location, or reason..." value="{{ request.GET.q }}">
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="d-flex flex-wrap gap-2 filter-controls mt-2 mt-md-0">
+                <!-- From Department Filter -->
+                <select name="from_department" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                    <option value="">Origin Dept (All)</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.pk }}" {% if request.GET.from_department == dept.pk|stringformat:"i" %}selected{% endif %}>
+                            From: {{ dept.code }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- To Department Filter -->
+                <select name="to_department" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                    <option value="">Dest Dept (All)</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.pk }}" {% if request.GET.to_department == dept.pk|stringformat:"i" %}selected{% endif %}>
+                            To: {{ dept.code }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Status Filter -->
+                <select name="status" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                    <option value="">All Open Statuses</option>
+                    {% for st_val, st_lbl in statuses %}
+                        <option value="{{ st_val }}" {% if request.GET.status == st_val %}selected{% endif %}>
+                            {{ st_lbl }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if request.GET.q or request.GET.from_department or request.GET.to_department or request.GET.status %}
+                    <a href="{% url 'transfers:pending_list' %}" class="btn btn-sm btn-outline-danger" title="Clear filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Active Transfers Records -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-arrow-left-right text-primary me-2"></i>Active Transfer Queue
+            <span class="badge bg-primary ms-1">{{ page_obj.paginator.count }}</span>
+        </h6>
+    </div>
+
+    {% if transfers %}
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset</th>
+                        <th>Origin (Snapshot)</th>
+                        <th></th>
+                        <th>Target Destination</th>
+                        <th>Request Details</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transfers %}
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="{% url 'inventory:asset_detail' t.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                    {{ t.asset.asset_code }}
+                                </a>
+                                <span class="badge bg-light text-dark border ms-1">{{ t.asset.category.code }}</span>
+                            </div>
+                            <small class="text-dark fw-semibold">{{ t.asset.item_name }}</small>
+                            {% if t.asset.serial_number %}
+                                <br><small class="text-muted font-monospace">SN: {{ t.asset.serial_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-danger">
+                                <i class="bi bi-geo-alt me-1"></i>{{ t.from_location.name|default:"Unspecified Location" }}
+                            </div>
+                            <small class="text-muted">{{ t.from_department.name }}</small>
+                        </td>
+                        <td class="text-center text-muted px-1">
+                            <i class="bi bi-arrow-right fs-5"></i>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-success">
+                                <i class="bi bi-geo-alt-fill me-1"></i>{{ t.to_location.name|default:"Unspecified Location" }}
+                            </div>
+                            <small class="text-muted">{{ t.to_department.name }}</small>
+                        </td>
+                        <td>
+                            <div class="small fw-semibold text-truncate" style="max-width: 200px;" title="{{ t.reason }}">
+                                {{ t.reason }}
+                            </div>
+                            <small class="text-muted">
+                                By {{ t.requested_by.username|default:"System" }} &bull; {{ t.transfer_date|date:"M d, Y" }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if t.status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending Approval</span>
+                            {% elif t.status == 'APPROVED' %}
+                                <span class="badge bg-info text-dark"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ t.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="action-btn-group justify-content-end">
+                                <a href="{% url 'transfers:transfer_detail' t.pk %}" class="btn btn-sm btn-outline-secondary" title="View Transfer Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+
+                                {% if request.user.is_admin %}
+                                    {% if t.status == 'PENDING' %}
+                                    <form method="post" action="{% url 'transfers:transfer_approve' t.pk %}" class="d-inline" data-confirm="Approve this asset transfer request?">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Approve Transfer">
+                                            <i class="bi bi-check-lg"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'transfers:transfer_reject' t.pk %}" class="d-inline" data-confirm="Reject this asset transfer request?">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject Transfer">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    {% elif t.status == 'APPROVED' %}
+                                    <form method="post" action="{% url 'transfers:transfer_complete' t.pk %}" class="d-inline" data-confirm="Confirm physical arrival and complete this transfer? This will update the asset's current location.">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-success" title="Complete Transfer">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i> Complete
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'transfers:transfer_cancel' t.pk %}" class="d-inline" data-confirm="Cancel this transfer?">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Cancel Transfer">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card List View -->
+    <div class="mobile-card-list p-3">
+        {% for t in transfers %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <a href="{% url 'inventory:asset_detail' t.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                        {{ t.asset.asset_code }}
+                    </a>
+                    <span class="badge bg-light text-dark border ms-1">{{ t.asset.category.code }}</span>
+                    <h6 class="mb-0 fw-bold mt-1">{{ t.asset.item_name }}</h6>
+                </div>
+                {% if t.status == 'PENDING' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elif t.status == 'APPROVED' %}
+                    <span class="badge bg-info text-dark">Approved</span>
+                {% endif %}
+            </div>
+
+            <!-- Movement Path Card -->
+            <div class="bg-light p-2 rounded border mb-2 small">
+                <div class="text-danger">
+                    <i class="bi bi-arrow-up-right me-1"></i> <strong>From:</strong> {{ t.from_department.code }} &bull; {{ t.from_location.name|default:"No Location" }}
+                </div>
+                <div class="text-success mt-1">
+                    <i class="bi bi-arrow-down-right me-1"></i> <strong>To:</strong> {{ t.to_department.code }} &bull; {{ t.to_location.name|default:"No Location" }}
+                </div>
+            </div>
+
+            <div class="card-meta">
+                <div><i class="bi bi-card-text text-muted me-1"></i> Reason: {{ t.reason }}</div>
+                <div><i class="bi bi-calendar text-muted me-1"></i> Date: {{ t.transfer_date|date:"M d, Y" }} &bull; By: {{ t.requested_by.username|default:"System" }}</div>
+            </div>
+
+            <div class="card-actions d-flex flex-wrap gap-2">
+                <a href="{% url 'transfers:transfer_detail' t.pk %}" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="bi bi-eye me-1"></i> Details
+                </a>
+
+                {% if request.user.is_admin %}
+                    {% if t.status == 'PENDING' %}
+                    <form method="post" action="{% url 'transfers:transfer_approve' t.pk %}" class="flex-fill" data-confirm="Approve this asset transfer?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                            <i class="bi bi-check-lg me-1"></i> Approve
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'transfers:transfer_reject' t.pk %}" class="flex-fill" data-confirm="Reject this transfer request?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                            <i class="bi bi-x-lg me-1"></i> Reject
+                        </button>
+                    </form>
+                    {% elif t.status == 'APPROVED' %}
+                    <form method="post" action="{% url 'transfers:transfer_complete' t.pk %}" class="w-100" data-confirm="Confirm physical arrival and complete this transfer?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success w-100">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Complete Transfer
+                        </button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-arrow-left-right text-muted fs-1 mb-2"></i>
+        <h5 class="fw-bold">No Pending Transfers</h5>
+        <p class="text-muted small mb-3">
+            {% if request.GET.q or request.GET.from_department or request.GET.to_department or request.GET.status %}
+                No active transfer requests match your filter criteria.
+            {% else %}
+                There are currently no pending or uncompleted asset transfer requests.
+            {% endif %}
+        </p>
+        {% if request.user.is_admin %}
+        <a href="{% url 'transfers:transfer_request' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Request a Transfer
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

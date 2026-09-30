@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Current Asset Assignments - CBA IMS{% endblock %}
+{% block page_title %}Current Asset Assignments{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h4 class="mb-1 fw-bold">Current Asset Assignments</h4>
+        <p class="text-muted mb-0 small">Active equipment assignments and faculty/staff accountability records.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if request.user.is_admin %}
+        <a href="{% url 'assignments:assign_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Assign Asset
+        </a>
+        {% endif %}
+        <a href="{% url 'assignments:history_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-clock-history me-1"></i> Assignment History
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="get" class="search-filter-bar d-flex flex-wrap align-items-center">
+            <!-- Search Query -->
+            <div class="input-group search-input flex-grow-1" style="min-width: 220px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" class="form-control border-start-0" placeholder="Search asset code, item, serial, or employee..." value="{{ request.GET.q }}">
+            </div>
+
+            <!-- Filter Controls (Desktop visible, collapsible on mobile) -->
+            <div class="d-flex flex-wrap gap-2 filter-controls mt-2 mt-md-0">
+                <!-- Department Filter -->
+                <select name="department" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.pk }}" {% if request.GET.department == dept.pk|stringformat:"i" %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Category Filter -->
+                <select name="category" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if request.GET.category == cat.pk|stringformat:"i" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Condition Filter -->
+                <select name="condition" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+                    <option value="">All Conditions</option>
+                    {% for cond_val, cond_label in conditions %}
+                        <option value="{{ cond_val }}" {% if request.GET.condition == cond_val %}selected{% endif %}>
+                            {{ cond_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if request.GET.q or request.GET.department or request.GET.category or request.GET.condition %}
+                    <a href="{% url 'assignments:current_list' %}" class="btn btn-sm btn-outline-danger" title="Clear filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Active Assignments List -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-person-check text-primary me-2"></i>Active Accountabilities
+            <span class="badge bg-primary ms-1">{{ page_obj.paginator.count }}</span>
+        </h6>
+    </div>
+
+    {% if assignments %}
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset</th>
+                        <th>Accountable Employee</th>
+                        <th>Assigned Date</th>
+                        <th>Expected Return</th>
+                        <th>Condition</th>
+                        <th>Purpose / Remarks</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assign in assignments %}
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                    {{ assign.asset.asset_code }}
+                                </a>
+                                <span class="badge bg-light text-dark border ms-1">{{ assign.asset.category.code }}</span>
+                            </div>
+                            <small class="text-dark fw-semibold">{{ assign.asset.item_name }}</small>
+                            {% if assign.asset.serial_number %}
+                                <br><small class="text-muted font-monospace">SN: {{ assign.asset.serial_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">
+                                <a href="{% url 'organizations:employee_detail' assign.employee.pk %}" class="text-decoration-none text-dark">
+                                    {{ assign.employee.full_name }}
+                                </a>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-building me-1"></i>{{ assign.employee.department.name|default:"No Department" }}
+                                {% if assign.employee.position %}&bull; {{ assign.employee.position }}{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="text-nowrap">{{ assign.assigned_date|date:"M d, Y" }}</span>
+                            <br><small class="text-muted">by {{ assign.assigned_by.username|default:"System" }}</small>
+                        </td>
+                        <td>
+                            {% if assign.expected_return_date %}
+                                <span class="text-nowrap">{{ assign.expected_return_date|date:"M d, Y" }}</span>
+                            {% else %}
+                                <span class="text-muted small">Indefinite</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if assign.condition_at_assignment == 'NEW' %}
+                                <span class="badge bg-primary">New</span>
+                            {% elif assign.condition_at_assignment == 'GOOD' %}
+                                <span class="badge bg-success">Good</span>
+                            {% elif assign.condition_at_assignment == 'FAIR' %}
+                                <span class="badge bg-info text-dark">Fair</span>
+                            {% elif assign.condition_at_assignment == 'POOR' %}
+                                <span class="badge bg-warning text-dark">Poor</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unserviceable</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if assign.purpose %}
+                                <div class="small fw-semibold text-truncate" style="max-width: 200px;" title="{{ assign.purpose }}">
+                                    {{ assign.purpose }}
+                                </div>
+                            {% endif %}
+                            {% if assign.remarks %}
+                                <small class="text-muted text-truncate d-block" style="max-width: 200px;" title="{{ assign.remarks }}">
+                                    {{ assign.remarks }}
+                                </small>
+                            {% endif %}
+                            {% if not assign.purpose and not assign.remarks %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="action-btn-group justify-content-end">
+                                <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-secondary" title="View Asset">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if request.user.is_admin %}
+                                <a href="{% url 'assignments:asset_return' assign.pk %}" class="btn btn-sm btn-outline-warning" title="Process Return">
+                                    <i class="bi bi-arrow-return-left me-1"></i> Return
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card List View -->
+    <div class="mobile-card-list p-3">
+        {% for assign in assignments %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                        {{ assign.asset.asset_code }}
+                    </a>
+                    <span class="badge bg-light text-dark border ms-1">{{ assign.asset.category.code }}</span>
+                    <h6 class="mb-0 fw-bold mt-1">{{ assign.asset.item_name }}</h6>
+                </div>
+                <span class="badge bg-success">Active</span>
+            </div>
+
+            <div class="card-meta">
+                <div>
+                    <i class="bi bi-person text-muted me-1"></i>
+                    <strong>{{ assign.employee.full_name }}</strong>
+                    <span class="text-muted">({{ assign.employee.department.code|default:"No Dept" }})</span>
+                </div>
+                <div>
+                    <i class="bi bi-calendar-check text-muted me-1"></i> Assigned: {{ assign.assigned_date|date:"M d, Y" }}
+                </div>
+                {% if assign.expected_return_date %}
+                <div>
+                    <i class="bi bi-calendar-event text-muted me-1"></i> Expected Return: {{ assign.expected_return_date|date:"M d, Y" }}
+                </div>
+                {% endif %}
+                <div>
+                    <i class="bi bi-shield-check text-muted me-1"></i> Condition: {{ assign.get_condition_at_assignment_display }}
+                </div>
+                {% if assign.purpose %}
+                <div class="text-truncate">
+                    <i class="bi bi-info-circle text-muted me-1"></i> Purpose: {{ assign.purpose }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card-actions d-flex gap-2">
+                <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="bi bi-eye me-1"></i> Asset Details
+                </a>
+                <a href="{% url 'organizations:employee_detail' assign.employee.pk %}" class="btn btn-sm btn-outline-secondary flex-fill">
+                    <i class="bi bi-person me-1"></i> Profile
+                </a>
+                {% if request.user.is_admin %}
+                <a href="{% url 'assignments:asset_return' assign.pk %}" class="btn btn-sm btn-outline-warning flex-fill">
+                    <i class="bi bi-arrow-return-left me-1"></i> Return
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-person-check text-muted fs-1 mb-2"></i>
+        <h5 class="fw-bold">No Active Assignments Found</h5>
+        <p class="text-muted small mb-3">
+            {% if request.GET.q or request.GET.department or request.GET.category or request.GET.condition %}
+                No asset assignments match your search or filter criteria.
+            {% else %}
+                There are currently no active asset assignments recorded in the system.
+            {% endif %}
+        </p>
+        {% if request.user.is_admin %}
+        <a href="{% url 'assignments:assign_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Assign an Asset
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

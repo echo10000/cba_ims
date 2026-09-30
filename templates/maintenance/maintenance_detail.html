@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb & Back -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            {% if user.role == 'FACULTY' %}
+                <li class="breadcrumb-item"><a href="{% url 'maintenance:my_reports' %}">My Reports</a></li>
+            {% else %}
+                <li class="breadcrumb-item"><a href="{% url 'maintenance:case_list' %}">Maintenance Queue</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active font-monospace" aria-current="page">{{ case.case_number }}</li>
+        </ol>
+    </nav>
+    <a href="{% if user.role == 'FACULTY' %}{% url 'maintenance:my_reports' %}{% else %}{% url 'maintenance:case_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<!-- Header Card with Actions -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h3 class="mb-0 fw-bold font-monospace text-primary">{{ case.case_number }}</h3>
+                    {% if case.status == 'REPORTED' %}
+                        <span class="badge bg-secondary fs-6">Reported</span>
+                    {% elif case.status == 'ASSESSED' %}
+                        <span class="badge bg-primary fs-6">Assessed</span>
+                    {% elif case.status == 'IN_REPAIR' %}
+                        <span class="badge bg-warning text-dark fs-6">In Repair</span>
+                    {% elif case.status == 'COMPLETED' %}
+                        <span class="badge bg-success fs-6">Completed</span>
+                    {% elif case.status == 'FOR_REPLACEMENT' %}
+                        <span class="badge bg-danger fs-6">For Replacement</span>
+                    {% elif case.status == 'CANCELLED' %}
+                        <span class="badge bg-light text-dark border fs-6">Cancelled</span>
+                    {% endif %}
+
+                    {% if case.severity == 'CRITICAL' %}
+                        <span class="badge bg-danger fs-6">Critical Severity</span>
+                    {% elif case.severity == 'HIGH' %}
+                        <span class="badge bg-warning text-dark fs-6">High Severity</span>
+                    {% elif case.severity == 'MEDIUM' %}
+                        <span class="badge bg-info text-dark fs-6">Medium Severity</span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">Low Severity</span>
+                    {% endif %}
+                </div>
+                <h5 class="text-dark fw-semibold mt-2 mb-1">{{ case.issue_title }}</h5>
+                <p class="text-muted small mb-0">
+                    Reported by <strong>{{ case.reported_by.get_full_name|default:case.reported_by.username }}</strong> &bull;
+                    {{ case.reported_at|date:"F d, Y \a\t H:i" }} &bull;
+                    Source: <span class="badge bg-light text-dark border">{{ case.get_source_display }}</span>
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap gap-2">
+                {% if can_assess %}
+                    <a href="{% url 'maintenance:maintenance_assess' case.pk %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-clipboard-check me-1"></i> Technical Assessment
+                    </a>
+                {% endif %}
+                {% if can_start_repair %}
+                    <a href="{% url 'maintenance:maintenance_start_repair' case.pk %}" class="btn btn-warning text-dark btn-sm">
+                        <i class="bi bi-wrench me-1"></i> Dispatch to Repair
+                    </a>
+                {% endif %}
+                {% if can_complete %}
+                    <a href="{% url 'maintenance:maintenance_complete' case.pk %}" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-circle me-1"></i> Complete Repair
+                    </a>
+                {% endif %}
+                {% if can_replace %}
+                    <a href="{% url 'maintenance:maintenance_for_replacement' case.pk %}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i> Mark For Replacement
+                    </a>
+                {% endif %}
+                {% if case.status == 'FOR_REPLACEMENT' and request.user.is_admin and case.asset.status != 'DISPOSED' %}
+                    <a href="{% url 'disposals:request_create_specific' asset_code=case.asset.asset_code %}?maintenance_ref={{ case.pk }}" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash3 me-1"></i> Begin Disposal Process
+                    </a>
+                {% endif %}
+                {% if can_cancel %}
+                    <a href="{% url 'maintenance:maintenance_cancel' case.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i> Cancel Case
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Lifecycle Stepper -->
+        <hr class="my-4">
+        <div class="row text-center g-2">
+            <div class="col-3">
+                <div class="p-2 rounded {% if case.status in 'REPORTED,ASSESSED,IN_REPAIR,COMPLETED,FOR_REPLACEMENT' %}bg-primary text-white{% else %}bg-light text-muted{% endif %}">
+                    <i class="bi bi-flag-fill d-block mb-1"></i>
+                    <small class="fw-bold d-block">1. Reported</small>
+                    <span class="small" style="font-size: 0.75rem;">{{ case.reported_at|date:"M d" }}</span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 rounded {% if case.status in 'ASSESSED,IN_REPAIR,COMPLETED,FOR_REPLACEMENT' %}bg-primary text-white{% else %}bg-light text-muted{% endif %}">
+                    <i class="bi bi-clipboard-check d-block mb-1"></i>
+                    <small class="fw-bold d-block">2. Assessed</small>
+                    <span class="small" style="font-size: 0.75rem;">{{ case.assessed_at|date:"M d"|default:"Pending" }}</span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 rounded {% if case.status in 'IN_REPAIR,COMPLETED,FOR_REPLACEMENT' %}bg-warning text-dark{% else %}bg-light text-muted{% endif %}">
+                    <i class="bi bi-wrench d-block mb-1"></i>
+                    <small class="fw-bold d-block">3. In Repair</small>
+                    <span class="small" style="font-size: 0.75rem;">{{ case.repair_started_at|date:"M d"|default:"Pending" }}</span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 rounded {% if case.status == 'COMPLETED' %}bg-success text-white{% elif case.status == 'FOR_REPLACEMENT' %}bg-danger text-white{% elif case.status == 'CANCELLED' %}bg-secondary text-white{% else %}bg-light text-muted{% endif %}">
+                    {% if case.status == 'FOR_REPLACEMENT' %}
+                        <i class="bi bi-exclamation-triangle d-block mb-1"></i>
+                        <small class="fw-bold d-block">4. Replacement</small>
+                    {% elif case.status == 'CANCELLED' %}
+                        <i class="bi bi-x-circle d-block mb-1"></i>
+                        <small class="fw-bold d-block">4. Cancelled</small>
+                    {% else %}
+                        <i class="bi bi-check2-circle d-block mb-1"></i>
+                        <small class="fw-bold d-block">4. Completed</small>
+                    {% endif %}
+                    <span class="small" style="font-size: 0.75rem;">{{ case.repair_completed_at|date:"M d"|default:case.updated_at|date:"M d" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Left Column: Technical Details -->
+    <div class="col-12 col-lg-8">
+        <!-- Defect Details Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-file-text me-2 text-danger"></i>Defect / Damage Report</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Issue Summary</label>
+                    <div class="fw-bold fs-6">{{ case.issue_title }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Detailed Malfunction Description</label>
+                    <div class="p-3 bg-light rounded text-dark" style="white-space: pre-wrap;">{{ case.issue_description }}</div>
+                </div>
+                {% if case.remarks %}
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Reporter Remarks</label>
+                    <div class="small text-muted">{{ case.remarks }}</div>
+                </div>
+                {% endif %}
+                <div class="row g-2 mt-2 pt-2 border-top">
+                    <div class="col-6 col-sm-4">
+                        <small class="text-muted d-block">Condition at Report</small>
+                        <span class="badge bg-secondary">{{ case.get_condition_before_display }}</span>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <small class="text-muted d-block">Report Source</small>
+                        <span class="fw-medium small">{{ case.get_source_display }}</span>
+                    </div>
+                    {% if case.borrowing_reference %}
+                    <div class="col-12 col-sm-4">
+                        <small class="text-muted d-block">Borrowing Incident</small>
+                        <a href="{% url 'borrowing:borrowing_detail' case.borrowing_reference.pk %}" class="small font-monospace">Loan #{{ case.borrowing_reference.pk }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Assessment Card -->
+        {% if case.assessed_at %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clipboard-check me-2 text-primary"></i>Technical Diagnostic Assessment</h6>
+                <span class="badge bg-primary">Assessed</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Technical Diagnosis</label>
+                    <div class="p-3 bg-light rounded text-dark" style="white-space: pre-wrap;">{{ case.diagnosis }}</div>
+                </div>
+                {% if case.recommended_action %}
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Recommended Remediation</label>
+                    <div class="text-dark small">{{ case.recommended_action }}</div>
+                </div>
+                {% endif %}
+                <div class="row g-2 pt-2 border-top">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Assessed By</small>
+                        <span class="fw-semibold small">{{ case.assessed_by.get_full_name|default:case.assessed_by.username }}</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Assessment Date</small>
+                        <span class="small">{{ case.assessed_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Repair & Service Execution Card -->
+        {% if case.repair_started_at %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-tools me-2 text-warning"></i>Repair & Service Operations</h6>
+                {% if case.status == 'IN_REPAIR' %}
+                    <span class="badge bg-warning text-dark">Under Active Repair</span>
+                {% elif case.status == 'COMPLETED' %}
+                    <span class="badge bg-success">Repair Concluded</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Service Provider / Facility</label>
+                        <div class="fw-bold fs-6">{{ case.service_provider|default:"Internal IT Maintenance" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Assigned Technician</label>
+                        <div class="fw-medium">{{ case.technician|default:"Not specified" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Repair Dispatch Date</label>
+                        <div class="small">{{ case.repair_started_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% if case.repair_completed_at %}
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Completion Date</label>
+                        <div class="small fw-semibold text-success">{{ case.repair_completed_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if case.action_taken %}
+                <div class="mb-3 pt-2 border-top">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Corrective Action Taken</label>
+                    <div class="p-3 bg-light rounded text-dark" style="white-space: pre-wrap;">{{ case.action_taken }}</div>
+                </div>
+                {% endif %}
+
+                {% if case.parts_replaced %}
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Parts & Components Replaced</label>
+                    <div class="p-2 bg-light rounded text-dark small" style="white-space: pre-wrap;">{{ case.parts_replaced }}</div>
+                </div>
+                {% endif %}
+
+                {% if case.repair_cost is not None %}
+                <div class="mb-3 p-3 bg-light-subtle border rounded d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Documented Repair Cost</div>
+                        <small class="text-muted">Labor, components, and service vendor invoicing</small>
+                    </div>
+                    <div class="fs-4 fw-bold font-monospace text-dark">
+                        &#8369;{{ case.repair_cost|floatformat:2 }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Terminal Status Card (Completed, Replaced, Cancelled) -->
+        {% if case.status == 'COMPLETED' %}
+        <div class="card shadow-sm border-0 mb-4 border-start border-4 border-success">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-success"><i class="bi bi-check-circle-fill me-2"></i>Reintegration & Return to Service</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Post-Repair Condition</label>
+                        <span class="badge bg-success fs-6">{{ case.get_final_condition_display }}</span>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Restored Operational Status</label>
+                        <span class="badge bg-primary fs-6">{{ case.asset.get_status_display }}</span>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Verified & Cleared By</label>
+                        <span class="small fw-semibold">{{ case.returned_to_service_by.get_full_name|default:case.returned_to_service_by.username }}</span>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small text-uppercase fw-semibold d-block">Reintegration Date</label>
+                        <span class="small">{{ case.returned_to_service_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif case.status == 'FOR_REPLACEMENT' %}
+        <div class="card shadow-sm border-0 mb-4 border-start border-4 border-danger">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Replacement Recommendation</h6>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-danger small mb-3">
+                    This asset was evaluated as unserviceable or beyond economical repair. It has been marked as <strong>UNSERVICEABLE / DAMAGED</strong> and retained safely pending formal Phase 9 disposal evaluation.
+                </p>
+                {% if case.remarks %}
+                <div class="mb-2">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Evaluation Justification</label>
+                    <div class="p-3 bg-light rounded text-dark">{{ case.remarks }}</div>
+                </div>
+                {% endif %}
+                {% if request.user.is_admin and case.asset.status != 'DISPOSED' %}
+                <div class="mt-3 pt-3 border-top d-flex justify-content-end">
+                    <a href="{% url 'disposals:request_create_specific' asset_code=case.asset.asset_code %}?maintenance_ref={{ case.pk }}" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash3 me-1"></i> Begin Disposal Process
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif case.status == 'CANCELLED' %}
+        <div class="card shadow-sm border-0 mb-4 border-start border-4 border-secondary">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-x-circle-fill me-2"></i>Maintenance Case Cancelled</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase fw-semibold d-block">Cancellation Reason</label>
+                    <div class="p-3 bg-light rounded text-dark">{{ case.cancellation_reason|default:"No cancellation reason provided." }}</div>
+                </div>
+                <div class="row g-2 small text-muted">
+                    <div class="col-6">Cancelled By: <strong>{{ case.cancelled_by.get_full_name|default:case.cancelled_by.username }}</strong></div>
+                    <div class="col-6">Date: {{ case.cancelled_at|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar Right Column: Equipment Snapshot & Metadata -->
+    <div class="col-12 col-lg-4">
+        <!-- Asset Information Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-laptop me-2"></i>Equipment Details</h6>
+                <a href="{% url 'inventory:asset_detail' asset.pk %}" class="btn btn-outline-primary btn-sm" title="View Full Asset Profile">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+            </div>
+            <div class="card-body p-3">
+                <div class="text-center mb-3">
+                    <div class="fw-bold fs-5 text-dark">{{ asset.item_name }}</div>
+                    <div class="font-monospace text-primary fw-bold">{{ asset.asset_code }}</div>
+                    <div class="mt-2">
+                        {% if asset.status == 'MAINTENANCE' %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-wrench me-1"></i>Under Maintenance</span>
+                        {% elif asset.status == 'ASSIGNED' %}
+                            <span class="badge bg-primary">Assigned</span>
+                        {% elif asset.status == 'AVAILABLE' %}
+                            <span class="badge bg-success">Available</span>
+                        {% elif asset.status == 'DAMAGED' %}
+                            <span class="badge bg-danger">Damaged</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ asset.get_status_display }}</span>
+                        {% endif %}
+
+                        <span class="badge bg-light text-dark border">{{ asset.get_condition_display }}</span>
+                    </div>
+                </div>
+
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Category</span>
+                        <span class="fw-medium">{{ asset.category.name }}</span>
+                    </li>
+                    {% if asset.brand %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Brand / Model</span>
+                        <span class="fw-medium">{{ asset.brand.name }} {{ asset.model_number }}</span>
+                    </li>
+                    {% endif %}
+                    {% if asset.property_number %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Property Number</span>
+                        <span class="font-monospace">{{ asset.property_number }}</span>
+                    </li>
+                    {% endif %}
+                    {% if asset.serial_number %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Serial Number</span>
+                        <span class="font-monospace">{{ asset.serial_number }}</span>
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Department</span>
+                        <span class="fw-medium">{{ asset.department.name|default:"Unassigned" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Current Location</span>
+                        <span class="fw-medium">{{ asset.current_location.name|default:"Unspecified" }}</span>
+                    </li>
+                </ul>
+
+                <!-- Active Custodian (if assigned) -->
+                {% with active_assignment=asset.assignments.all|dictsortreversed:"assigned_date"|first %}
+                    {% if active_assignment and active_assignment.status == 'ACTIVE' %}
+                    <div class="mt-3 p-2 bg-light rounded small">
+                        <div class="text-muted mb-1"><i class="bi bi-person-badge me-1"></i>Active Accountability:</div>
+                        <div class="fw-bold text-dark">{{ active_assignment.employee.full_name }}</div>
+                        <div class="text-muted" style="font-size: 0.8rem;">Assigned since {{ active_assignment.assigned_date|date:"M d, Y" }}</div>
+                        <div class="badge bg-info text-dark mt-1" style="font-size: 0.75rem;">Accountability Maintained</div>
+                    </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+
+        <!-- Case Audit Meta Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2 text-secondary"></i>Record Information</h6>
+            </div>
+            <div class="card-body p-3 small">
+                <div class="mb-2">
+                    <span class="text-muted d-block">Case Number</span>
+                    <span class="font-monospace fw-bold">{{ case.case_number }}</span>
+                </div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">First Logged</span>
+                    <span>{{ case.created_at|date:"M d, Y H:i:s" }}</span>
+                </div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">Last System Update</span>
+                    <span>{{ case.updated_at|date:"M d, Y H:i:s" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

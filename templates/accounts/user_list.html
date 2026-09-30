@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Users - CBA IMS{% endblock %}
+{% block page_title %}Users Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <form method="get" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1" style="max-width: 450px;">
+                <div class="input-group" style="min-width: 180px; flex: 1;">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search users..." value="{{ request.GET.q }}">
+                </div>
+                <select name="role" class="form-select" style="width: auto; min-width: 140px;">
+                    <option value="">All Roles</option>
+                    {% for role_code, role_label in roles %}
+                        <option value="{{ role_code }}" {% if request.GET.role == role_code %}selected{% endif %}>{{ role_label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-outline-secondary">Filter</button>
+                {% if request.GET.q or request.GET.role %}
+                    <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-danger" title="Clear filter"><i class="bi bi-x-circle"></i></a>
+                {% endif %}
+            </form>
+            <a href="{% url 'accounts:user_create' %}" class="btn btn-primary text-nowrap">
+                <i class="bi bi-plus-lg"></i> Add User
+            </a>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive desktop-table">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th class="text-end" style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users|default:object_list %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.get_full_name|default:"-" }}</td>
+                        <td>{{ u.email|default:"-" }}</td>
+                        <td>
+                            {% if u.role == 'ADMIN' %}
+                                <span class="badge bg-danger">Administrator</span>
+                            {% elif u.role == 'DEAN' %}
+                                <span class="badge bg-purple text-white" style="background-color: #6f42c1;">Dean</span>
+                            {% elif u.role == 'DEPT_CHAIR' %}
+                                <span class="badge bg-warning text-dark">Dept Chair</span>
+                            {% else %}
+                                <span class="badge bg-primary">Faculty / Staff</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="action-btn-group justify-content-end">
+                                <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if u != request.user %}
+                                <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} confirm-action" title="Toggle Status">
+                                        <i class="bi {% if u.is_active %}bi-x-circle{% else %}bi-check-circle{% endif %}"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-card-list">
+            {% for u in users|default:object_list %}
+            <div class="mobile-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="card-title mb-0">{{ u.get_full_name|default:u.username }}</div>
+                        <small class="text-muted"><i class="bi bi-at"></i> {{ u.username }}</small>
+                    </div>
+                    <div>
+                        {% if u.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-meta">
+                    <div class="mb-1">
+                        {% if u.role == 'ADMIN' %}
+                            <span class="badge bg-danger">Administrator</span>
+                        {% elif u.role == 'DEAN' %}
+                            <span class="badge text-white" style="background-color: #6f42c1;">Dean</span>
+                        {% elif u.role == 'DEPT_CHAIR' %}
+                            <span class="badge bg-warning text-dark">Dept Chair</span>
+                        {% else %}
+                            <span class="badge bg-primary">Faculty / Staff</span>
+                        {% endif %}
+                    </div>
+                    {% if u.email %}
+                    <div><i class="bi bi-envelope me-1"></i> {{ u.email }}</div>
+                    {% endif %}
+                </div>
+                <div class="card-actions d-flex gap-2">
+                    <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                        <i class="bi bi-pencil"></i> Edit User
+                    </a>
+                    {% if u != request.user %}
+                    <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} confirm-action">
+                            <i class="bi {% if u.is_active %}bi-x-circle{% else %}bi-check-circle{% endif %}"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-people"></i>
+                <p>No users found.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

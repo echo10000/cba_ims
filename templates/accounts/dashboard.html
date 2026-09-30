@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - CBA IMS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1">Welcome back, {{ request.user.get_full_name|default:request.user.username }}!</h4>
+        <p class="text-muted mb-0">
+            <span class="badge 
+                {% if request.user.role == 'ADMIN' %}bg-danger
+                {% elif request.user.role == 'DEAN' %}bg-purple text-white" style="background-color: #6f42c1;
+                {% elif request.user.role == 'DEPT_CHAIR' %}bg-warning text-dark
+                {% else %}bg-primary{% endif %}">
+                {{ request.user.get_role_display }}
+            </span>
+            <span class="ms-2 small text-muted"><i class="bi bi-clock me-1"></i>{% now "F j, Y" %}</span>
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'inventory:asset_scan' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-camera me-1"></i> Scan QR
+        </a>
+        {% if low_stock_supplies_count > 0 and request.user.role != 'FACULTY' %}
+        <a href="{% url 'supplies:low_stock_list' %}" class="btn btn-outline-warning text-dark btn-sm">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Low Supplies <span class="badge bg-danger ms-1">{{ low_stock_supplies_count }}</span>
+        </a>
+        {% endif %}
+        {% if request.user.is_admin %}
+        {% if pending_transfers_count > 0 %}
+        <a href="{% url 'transfers:pending_list' %}" class="btn btn-outline-info text-dark btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i> Transfers <span class="badge bg-primary ms-1">{{ pending_transfers_count }}</span>
+        </a>
+        {% endif %}
+        {% if pending_borrowings_count > 0 %}
+        <a href="{% url 'borrowing:request_list' %}" class="btn btn-outline-info text-dark btn-sm">
+            <i class="bi bi-hand-index me-1"></i> Borrow Requests <span class="badge bg-primary ms-1">{{ pending_borrowings_count }}</span>
+        </a>
+        {% endif %}
+        {% if pending_disposals_count > 0 %}
+        <a href="{% url 'disposals:pending_list' %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash3 me-1"></i> Disposals <span class="badge bg-danger ms-1">{{ pending_disposals_count }}</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'assignments:assign_create' %}" class="btn btn-outline-warning text-dark btn-sm">
+            <i class="bi bi-link me-1"></i> Assign Asset
+        </a>
+        <a href="{% url 'organizations:employee_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-people me-1"></i> Employees
+        </a>
+        <a href="{% url 'inventory:category_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-tags me-1"></i> Categories
+        </a>
+        {% elif request.user.role == 'FACULTY' %}
+        <a href="{% url 'assignments:my_accountability' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-shield-check me-1"></i> My Accountability
+        </a>
+        <a href="{% url 'borrowing:my_borrowings' %}" class="btn btn-outline-info text-dark btn-sm">
+            <i class="bi bi-hand-index me-1"></i> My Loans
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if overdue_borrowings_count > 0 and request.user.role != 'FACULTY' %}
+<div class="alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm" role="alert">
+    <div>
+        <i class="bi bi-clock-history text-danger fs-4 me-2 align-middle"></i>
+        <strong>Overdue Equipment Loan Alert:</strong>
+        There are <strong>{{ overdue_borrowings_count }}</strong> borrowed equipment item(s) that have exceeded their scheduled return date.
+    </div>
+    <a href="{% url 'borrowing:active_list' %}?status=OVERDUE" class="btn btn-sm btn-danger">View Overdue Loans</a>
+</div>
+{% endif %}
+
+{% if low_stock_supplies_count > 0 and request.user.role != 'FACULTY' %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm" role="alert">
+    <div>
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2 align-middle"></i>
+        <strong>Supply Replenishment Alert:</strong>
+        There are <strong>{{ low_stock_supplies_count }}</strong> consumable supply item(s) at or below their reorder threshold
+        {% if out_of_stock_supplies_count > 0 %}(including <strong>{{ out_of_stock_supplies_count }}</strong> completely out of stock){% endif %}.
+    </div>
+    <a href="{% url 'supplies:low_stock_list' %}" class="btn btn-sm btn-warning">View Depleted Supplies</a>
+</div>
+{% endif %}
+
+{% if critical_maintenance_count > 0 and request.user.role != 'FACULTY' %}
+<div class="alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm" role="alert">
+    <div>
+        <i class="bi bi-exclamation-octagon-fill text-danger fs-4 me-2 align-middle"></i>
+        <strong>Critical Maintenance Alert:</strong>
+        There are <strong>{{ critical_maintenance_count }}</strong> equipment item(s) logged with <strong>CRITICAL</strong> defect severity requiring immediate evaluation or dispatch.
+    </div>
+    <a href="{% url 'maintenance:case_list' %}?severity=CRITICAL" class="btn btn-sm btn-danger">View Critical Cases</a>
+</div>
+{% endif %}
+
+<!-- Primary Asset & Operational Stats Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card bg-primary text-white h-100 shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Total Assets</span>
+                    <i class="bi bi-box-seam stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ total_assets|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card bg-success text-white h-100 shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Available</span>
+                    <i class="bi bi-check-circle stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ available_assets|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card bg-warning text-dark h-100 shadow-sm">
+            <div class="card-body p-3 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-dark-50">Assigned</span>
+                    <i class="bi bi-person-check stat-icon text-dark-50"></i>
+                </div>
+                <div class="stat-value">{{ assigned_assets|default:"0" }}</div>
+                {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'assignments:current_list' %}" class="stretched-link" aria-label="View assigned assets"></a>
+                {% else %}
+                    <a href="{% url 'assignments:my_accountability' %}" class="stretched-link" aria-label="View my accountability"></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card text-white h-100 shadow-sm" style="background-color: #fd7e14;">
+            <div class="card-body p-3 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Maintenance</span>
+                    <i class="bi bi-tools stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ maintenance_assets|default:"0" }}</div>
+                {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'maintenance:case_list' %}" class="stretched-link" aria-label="View maintenance queue"></a>
+                {% else %}
+                    <a href="{% url 'maintenance:my_reports' %}" class="stretched-link" aria-label="View my maintenance reports"></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card bg-info text-dark h-100 shadow-sm">
+            <div class="card-body p-3 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-dark-50">Borrowed</span>
+                    <i class="bi bi-hand-index stat-icon text-dark-50"></i>
+                </div>
+                <div class="stat-value">{{ borrowed_assets|default:"0" }}</div>
+                {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'borrowing:active_list' %}" class="stretched-link" aria-label="View active borrowed equipment"></a>
+                {% else %}
+                    <a href="{% url 'borrowing:my_borrowings' %}" class="stretched-link" aria-label="View my borrowings"></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card bg-danger text-white h-100 shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Damaged</span>
+                    <i class="bi bi-exclamation-triangle stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ damaged_assets|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.user.role != 'FACULTY' %}
+<div class="d-flex justify-content-end mb-4">
+    <a href="{% url 'disposals:history_list' %}" class="badge bg-light text-dark border text-decoration-none px-3 py-2">
+        <i class="bi bi-archive-fill text-secondary me-1"></i> Retired / Disposed Assets Archive: <strong>{{ disposed_assets_count|default:"0" }}</strong>
+    </a>
+</div>
+{% endif %}
+
+<!-- Organization Structure Quick Stats (Phase 1 Foundation) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle bg-light p-3 me-3 text-primary">
+                    <i class="bi bi-building fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0 small text-uppercase">Departments</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_departments|default:"0" }}</h3>
+                </div>
+                <a href="{% url 'organizations:department_list' %}" class="stretched-link" aria-label="View departments"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle bg-light p-3 me-3 text-success">
+                    <i class="bi bi-geo-alt fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0 small text-uppercase">Locations</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_locations|default:"0" }}</h3>
+                </div>
+                <a href="{% url 'organizations:location_list' %}" class="stretched-link" aria-label="View locations"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle bg-light p-3 me-3 text-info">
+                    <i class="bi bi-people fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0 small text-uppercase">Faculty & Staff</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_employees|default:"0" }}</h3>
+                </div>
+                <a href="{% url 'organizations:employee_list' %}" class="stretched-link" aria-label="View employees"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center p-3">
+                <div class="rounded-circle bg-light p-3 me-3 text-warning">
+                    <i class="bi bi-tags fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-0 small text-uppercase">Categories</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_categories|default:"0" }}</h3>
+                </div>
+                <a href="{% url 'inventory:category_list' %}" class="stretched-link" aria-label="View categories"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.user.role != 'FACULTY' %}
+<!-- Phase 10: Operational Visual Analytics & Charts -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-pie-chart text-primary me-2"></i>Assets by Condition</h6>
+                <a href="{% url 'reports:asset_inventory' %}" class="small text-decoration-none">Report &rarr;</a>
+            </div>
+            <div class="card-body p-3 d-flex align-items-center justify-content-center" style="min-height: 240px;">
+                <canvas id="conditionChart" style="max-height: 220px;"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart-steps text-info me-2"></i>Assets by Category</h6>
+                <a href="{% url 'reports:asset_inventory' %}" class="small text-decoration-none">Report &rarr;</a>
+            </div>
+            <div class="card-body p-3 d-flex align-items-center justify-content-center" style="min-height: 240px;">
+                <canvas id="categoryChart" style="max-height: 220px;"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart text-success me-2"></i>{{ department_chart_title|default:"Assets Distribution" }}</h6>
+                {% if request.user.role != 'DEPT_CHAIR' %}
+                <a href="{% url 'reports:asset_by_department' %}" class="small text-decoration-none">Report &rarr;</a>
+                {% else %}
+                <a href="{% url 'reports:asset_by_location' %}" class="small text-decoration-none">Report &rarr;</a>
+                {% endif %}
+            </div>
+            <div class="card-body p-3 d-flex align-items-center justify-content-center" style="min-height: 240px;">
+                <canvas id="departmentChart" style="max-height: 220px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Low Stock Supplies -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-archive text-primary me-2"></i>Low Stock Supplies</h5>
+                <a href="{% url 'reports:supplies_low_stock' %}" class="small text-decoration-none">Report &rarr;</a>
+            </div>
+            <div class="card-body">
+                <div class="empty-state py-4">
+                    <i class="bi bi-box2"></i>
+                    <p class="mb-0">No supplies currently below reorder levels.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent System Activity -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-journal-text text-primary me-2"></i>Recent System Activity</h5>
+                {% if request.user.is_admin %}
+                <a href="{% url 'reports:audit_log' %}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if recent_activities %}
+                <ul class="list-group list-group-flush">
+                    {% for act in recent_activities %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                        <div>
+                            <span class="badge 
+                                {% if 'CREATE' in act.action or act.action == 'CREATED' %}bg-success
+                                {% elif 'UPDATE' in act.action or act.action == 'UPDATED' %}bg-primary
+                                {% elif 'DELETE' in act.action or act.action == 'DELETED' %}bg-danger
+                                {% else %}bg-secondary{% endif %} me-1">
+                                {{ act.action }}
+                            </span>
+                            <span class="small fw-semibold">{{ act.object_repr|truncatechars:35 }}</span>
+                            <div class="text-muted small">by {{ act.user.username|default:"System" }} &bull; {{ act.model_name }}</div>
+                        </div>
+                        <span class="text-muted small text-nowrap">{{ act.timestamp|timesince }} ago</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-clock-history"></i>
+                    <p class="mb-0">No recorded activity yet. Actions will appear in the audit trail.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if request.user.role != 'FACULTY' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Condition Doughnut Chart
+    var condCtx = document.getElementById('conditionChart');
+    if (condCtx) {
+        new Chart(condCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ condition_chart_labels|safe }},
+                datasets: [{
+                    data: {{ condition_chart_data|safe }},
+                    backgroundColor: ['#198754', '#20c997', '#0dcaf0', '#ffc107', '#dc3545'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // 2. Category Horizontal Bar Chart
+    var catCtx = document.getElementById('categoryChart');
+    if (catCtx) {
+        new Chart(catCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ category_chart_labels|safe }},
+                datasets: [{
+                    label: 'Assets',
+                    data: {{ category_chart_data|safe }},
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { precision: 0, font: { size: 10 } }, grid: { display: false } },
+                    y: { ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // 3. Department / Location Bar Chart
+    var deptCtx = document.getElementById('departmentChart');
+    if (deptCtx) {
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ department_chart_labels|safe }},
+                datasets: [{
+                    label: 'Assets',
+                    data: {{ department_chart_data|safe }},
+                    backgroundColor: '#6f42c1',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { precision: 0, font: { size: 10 } } },
+                    x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

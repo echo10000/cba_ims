@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'borrowing:request_list' %}" class="text-decoration-none">Borrowings</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'borrowing:borrowing_detail' borrowing.pk %}" class="text-decoration-none">#{{ borrowing.pk }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Reject</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-danger text-white p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-x-circle fs-5"></i>
+                    <h5 class="card-title mb-0 fw-bold">Reject Borrowing Request</h5>
+                </div>
+                <span class="badge bg-white text-danger font-monospace">Req #{{ borrowing.pk }}</span>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="bg-light rounded p-3 mb-4 border">
+                    <div class="font-monospace text-primary fw-bold">{{ borrowing.asset.asset_code }}</div>
+                    <h5 class="fw-bold text-dark mb-1">{{ borrowing.asset.item_name }}</h5>
+                    <div class="small text-muted">
+                        <div>Borrower: <strong>{{ borrowing.borrower.full_name }}</strong> ({{ borrowing.borrower_department.name }})</div>
+                        <div>Requested Period: {{ borrowing.requested_start|date:"M d, H:i" }} &rarr; {{ borrowing.requested_return|date:"M d, H:i" }}</div>
+                        <div>Purpose: {{ borrowing.purpose }}</div>
+                    </div>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.rejection_reason.id_for_label }}" class="form-label fw-semibold">
+                            Reason for Rejection <span class="text-danger">*</span>
+                        </label>
+                        {{ form.rejection_reason }}
+                        <div class="form-text small">{{ form.rejection_reason.help_text }}</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger flex-grow-1">
+                            <i class="bi bi-x-circle me-1"></i> Confirm Rejection
+                        </button>
+                        <a href="{% url 'borrowing:borrowing_detail' borrowing.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <!-- Back Navigation -->
+        <div class="mb-3">
+            <a href="{% if user.role == 'FACULTY' %}{% url 'maintenance:my_reports' %}{% else %}{% url 'maintenance:case_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Queue
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-danger-subtle p-2 me-3 text-danger">
+                        <i class="bi bi-exclamation-octagon fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold">Report Equipment Defect or Damage</h5>
+                        <small class="text-muted">Submit an official incident report for physical malfunction, broken parts, or diagnostic evaluation.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                {% if asset %}
+                <!-- Pre-selected Asset Banner -->
+                <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-4">
+                    <i class="bi bi-info-circle-fill fs-3 me-3 text-info"></i>
+                    <div>
+                        <div class="fw-bold">{{ asset.item_name }}</div>
+                        <div class="small">
+                            Asset Code: <span class="font-monospace fw-bold">{{ asset.asset_code }}</span> &bull;
+                            Category: {{ asset.category.name }} &bull;
+                            Current Status: <span class="badge bg-secondary">{{ asset.get_status_display }}</span> &bull;
+                            Location: {{ asset.current_location.name|default:"Unspecified" }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle me-1"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if not asset %}
+                    <div class="mb-3">
+                        <label for="{{ form.asset.id_for_label }}" class="form-label fw-semibold">
+                            Select Equipment / Asset <span class="text-danger">*</span>
+                        </label>
+                        {{ form.asset }}
+                        {% if form.asset.help_text %}
+                            <div class="form-text text-muted">{{ form.asset.help_text }}</div>
+                        {% endif %}
+                        {% if form.asset.errors %}
+                            <div class="text-danger small mt-1">{{ form.asset.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                        {# Asset is preselected and locked in form #}
+                        <input type="hidden" name="asset" value="{{ asset.pk }}">
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.issue_title.id_for_label }}" class="form-label fw-semibold">
+                            Issue Summary / Defect Title <span class="text-danger">*</span>
+                        </label>
+                        {{ form.issue_title }}
+                        {% if form.issue_title.help_text %}
+                            <div class="form-text text-muted">{{ form.issue_title.help_text }}</div>
+                        {% endif %}
+                        {% if form.issue_title.errors %}
+                            <div class="text-danger small mt-1">{{ form.issue_title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.issue_description.id_for_label }}" class="form-label fw-semibold">
+                            Detailed Description of Malfunction / Damage <span class="text-danger">*</span>
+                        </label>
+                        {{ form.issue_description }}
+                        <div class="form-text text-muted">
+                            Provide details regarding what happened, symptoms observed, physical damage visible, or error codes displayed.
+                        </div>
+                        {% if form.issue_description.errors %}
+                            <div class="text-danger small mt-1">{{ form.issue_description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-semibold">
+                            Additional Notes / Circumstances (Optional)
+                        </label>
+                        {{ form.remarks }}
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{% if user.role == 'FACULTY' %}{% url 'maintenance:my_reports' %}{% else %}{% url 'maintenance:case_list' %}{% endif %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-send me-1"></i> Submit Maintenance Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

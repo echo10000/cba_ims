@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk QR Asset Labels - CBA IMS{% endblock %}
+{% block page_title %}Bulk QR Asset Labels{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1 fw-bold">Bulk Asset QR Labels</h4>
+        <p class="text-muted small mb-0">Select and generate printable physical QR stickers for durable college assets.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'inventory:asset_scan' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-camera me-1"></i> Camera Scanner
+        </a>
+        <button type="button" id="btn-print-selected" class="btn btn-primary btn-sm">
+            <i class="bi bi-printer me-1"></i> Print Selected Labels
+        </button>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+                <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-control form-control-sm" placeholder="Search code, property #, item...">
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                        <option value="{{ d.pk }}" {% if request.GET.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="location" class="form-select form-select-sm">
+                    <option value="">All Locations</option>
+                    {% for l in locations %}
+                        <option value="{{ l.pk }}" {% if request.GET.location == l.pk|stringformat:"s" %}selected{% endif %}>{{ l.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                    {% for c in categories %}
+                        <option value="{{ c.pk }}" {% if request.GET.category == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                        <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-secondary btn-sm w-100">Filter</button>
+                <a href="{% url 'inventory:qr_labels_bulk' %}" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-x-circle"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Selection Form -->
+<form id="bulk-print-form" method="get" action="{% url 'inventory:qr_labels_bulk' %}" target="_blank">
+    <input type="hidden" name="print" value="true">
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="select-all-checkbox">
+                <label class="form-check-label fw-bold small text-dark" for="select-all-checkbox">
+                    Select All Visible ({{ assets_with_qr|length }} assets on this page)
+                </label>
+            </div>
+            <span class="text-muted small" id="selected-counter">0 selected</span>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;" class="text-center">#</th>
+                            <th style="width: 80px;" class="text-center">QR</th>
+                            <th>Asset Code</th>
+                            <th>Item Name / Model</th>
+                            <th>Property No.</th>
+                            <th>Department & Location</th>
+                            <th>Status</th>
+                            <th class="text-end pe-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in assets_with_qr %}
+                        <tr>
+                            <td class="text-center">
+                                <input class="form-check-input asset-checkbox" type="checkbox" name="selected" value="{{ item.asset.asset_code }}">
+                            </td>
+                            <td class="text-center">
+                                <img src="{{ item.qr_data_uri }}" alt="QR" width="48" height="48" class="border rounded p-1 bg-white">
+                            </td>
+                            <td>
+                                <a href="{% url 'inventory:asset_detail' item.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                    {{ item.asset.asset_code }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ item.asset.item_name }}</div>
+                                <small class="text-muted">{{ item.asset.brand.name|default:"" }} {{ item.asset.model|default:"" }}</small>
+                            </td>
+                            <td>
+                                {% if item.asset.property_number %}
+                                    <span class="font-monospace small">{{ item.asset.property_number }}</span>
+                                {% else %}
+                                    <span class="text-muted small fst-italic">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small fw-semibold">{{ item.asset.department.name }}</div>
+                                <small class="text-muted">{{ item.asset.current_location.name|default:"Unassigned" }}</small>
+                            </td>
+                            <td>
+                                {% if item.asset.status == 'AVAILABLE' %}
+                                    <span class="badge bg-success">Available</span>
+                                {% elif item.asset.status == 'ASSIGNED' %}
+                                    <span class="badge bg-warning text-dark">Assigned</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ item.asset.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                <a href="{% url 'inventory:asset_qr_label' item.asset.asset_code %}" class="btn btn-outline-dark btn-sm" target="_blank" title="Print Single Sticker">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                No durable assets found matching your criteria.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if is_paginated %}
+        <div class="card-footer bg-white border-top p-3">
+            {% include 'includes/pagination.html' %}
+        </div>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var selectAll = document.getElementById('select-all-checkbox');
+    var checkboxes = document.querySelectorAll('.asset-checkbox');
+    var counter = document.getElementById('selected-counter');
+    var btnPrint = document.getElementById('btn-print-selected');
+    var printForm = document.getElementById('bulk-print-form');
+
+    function updateCounter() {
+        var count = document.querySelectorAll('.asset-checkbox:checked').length;
+        counter.textContent = count + ' selected';
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(function(cb) {
+                cb.checked = selectAll.checked;
+            });
+            updateCounter();
+        });
+    }
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var allChecked = true;
+            checkboxes.forEach(function(c) {
+                if (!c.checked) allChecked = false;
+            });
+            if (selectAll) selectAll.checked = allChecked;
+            updateCounter();
+        });
+    });
+
+    if (btnPrint) {
+        btnPrint.addEventListener('click', function(e) {
+            var selected = document.querySelectorAll('.asset-checkbox:checked');
+            if (selected.length === 0) {
+                alert('Please select at least one asset to print labels.');
+                return;
+            }
+            printForm.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

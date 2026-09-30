@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Return Asset: {{ assignment.asset.asset_code }} - CBA IMS{% endblock %}
+{% block page_title %}Return Asset: {{ assignment.asset.asset_code }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignments:current_list' %}" class="text-decoration-none">Assignments</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'inventory:asset_detail' assignment.asset.asset_code %}" class="text-decoration-none">{{ assignment.asset.asset_code }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Return Asset</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <!-- Return Confirmation Card -->
+        <div class="card shadow-sm border-warning mb-4">
+            <div class="card-header bg-warning text-dark py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-arrow-return-left me-2"></i>Process Asset Return & Accountability Release
+                </h5>
+                <span class="badge bg-dark font-monospace">{{ assignment.asset.asset_code }}</span>
+            </div>
+            <div class="card-body p-4">
+                <!-- Current Assignment Summary -->
+                <div class="bg-light rounded p-3 mb-4 border">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-box-seam me-1"></i> Asset Information</h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <th class="text-muted" style="width: 130px;">Item Name:</th>
+                                    <td><strong>{{ assignment.asset.item_name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Category:</th>
+                                    <td>{{ assignment.asset.category.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Serial Number:</th>
+                                    <td class="font-monospace">{{ assignment.asset.serial_number|default:"None" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Property #:</th>
+                                    <td class="font-monospace">{{ assignment.asset.property_number|default:"None" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i> Current Custody</h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <th class="text-muted" style="width: 140px;">Employee:</th>
+                                    <td><strong>{{ assignment.employee.full_name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Department:</th>
+                                    <td>{{ assignment.employee.department.name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Assigned Date:</th>
+                                    <td>{{ assignment.assigned_date|date:"F d, Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Condition Issued:</th>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ assignment.get_condition_at_assignment_display }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inspection & Return Form -->
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Return Date -->
+                    <div class="mb-3">
+                        <label for="{{ form.returned_date.id_for_label }}" class="form-label fw-bold">
+                            Date Returned / Received <span class="text-danger">*</span>
+                        </label>
+                        {{ form.returned_date }}
+                        {% if form.returned_date.help_text %}
+                            <div class="form-text">{{ form.returned_date.help_text }}</div>
+                        {% endif %}
+                        {% if form.returned_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.returned_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Condition at Return -->
+                    <div class="mb-3">
+                        <label for="{{ form.condition_at_return.id_for_label }}" class="form-label fw-bold">
+                            Condition Upon Return Inspection <span class="text-danger">*</span>
+                        </label>
+                        {{ form.condition_at_return }}
+                        {% if form.condition_at_return.help_text %}
+                            <div class="form-text">{{ form.condition_at_return.help_text }}</div>
+                        {% endif %}
+                        {% if form.condition_at_return.errors %}
+                            <div class="text-danger small mt-1">{{ form.condition_at_return.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Operational Rule Notice -->
+                    <div class="alert alert-warning py-2 px-3 small d-flex align-items-center mb-3">
+                        <i class="bi bi-shield-exclamation fs-5 me-2 flex-shrink-0"></i>
+                        <div>
+                            <strong>Condition Transition Rule:</strong> If marked <em>Unserviceable</em>, the asset will automatically transition to <strong>DAMAGED</strong> status to prevent reassignment until repaired. Otherwise, it will return to <strong>AVAILABLE</strong> inventory.
+                        </div>
+                    </div>
+
+                    <!-- Return Remarks / Inspection Notes -->
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-bold">
+                            Return Inspection Notes & Remarks
+                        </label>
+                        {{ form.remarks }}
+                        {% if form.remarks.help_text %}
+                            <div class="form-text">{{ form.remarks.help_text }}</div>
+                        {% endif %}
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions d-flex justify-content-end gap-2">
+                        <a href="{% url 'inventory:asset_detail' assignment.asset.asset_code %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning fw-bold px-4" onclick="return confirm('Confirm release of employee accountability and return of this equipment?');">
+                            <i class="bi bi-check2-circle me-1"></i> Confirm & Complete Return
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

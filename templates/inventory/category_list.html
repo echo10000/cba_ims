@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Asset Categories - CBA IMS{% endblock %}
+{% block page_title %}Asset Categories{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 350px;">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search categories..." value="{{ request.GET.q }}">
+                </div>
+                <button type="submit" class="btn btn-outline-secondary">Search</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'inventory:category_list' %}" class="btn btn-outline-danger" title="Clear search"><i class="bi bi-x-circle"></i></a>
+                {% endif %}
+            </form>
+            <a href="{% url 'inventory:category_create' %}" class="btn btn-primary text-nowrap">
+                <i class="bi bi-plus-lg"></i> Add Category
+            </a>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive desktop-table">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 100px;">Code</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th class="text-end" style="width: 100px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in object_list %}
+                    <tr>
+                        <td><span class="badge bg-secondary">{{ cat.code }}</span></td>
+                        <td><strong>{{ cat.name }}</strong></td>
+                        <td class="text-truncate" style="max-width: 300px;">{{ cat.description|default:"-" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No categories found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-card-list">
+            {% for cat in object_list %}
+            <div class="mobile-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-secondary mb-1">{{ cat.code }}</span>
+                        <div class="card-title mb-0">{{ cat.name }}</div>
+                    </div>
+                    <div>
+                        <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
+                </div>
+                {% if cat.description %}
+                <div class="card-meta">
+                    <div class="text-muted small">{{ cat.description }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-tags"></i>
+                <p>No categories found.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

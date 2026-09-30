@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfer #{{ transfer.pk }} - {{ transfer.asset.asset_code }} - CBA IMS{% endblock %}
+{% block page_title %}Transfer Details: {{ transfer.asset.asset_code }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'transfers:pending_list' %}" class="text-decoration-none">Transfers</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Transfer #{{ transfer.pk }}</li>
+    </ol>
+</nav>
+
+<!-- Transfer Header Banner -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="font-monospace fs-5 fw-bold text-primary">Transfer #{{ transfer.pk }}</span>
+                    {% if transfer.status == 'PENDING' %}
+                        <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>Pending Approval</span>
+                    {% elif transfer.status == 'APPROVED' %}
+                        <span class="badge bg-info text-dark px-2 py-1"><i class="bi bi-check-circle me-1"></i>Approved / Awaiting Movement</span>
+                    {% elif transfer.status == 'COMPLETED' %}
+                        <span class="badge bg-success px-2 py-1"><i class="bi bi-check2-all me-1"></i>Completed</span>
+                    {% elif transfer.status == 'REJECTED' %}
+                        <span class="badge bg-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                    {% elif transfer.status == 'CANCELLED' %}
+                        <span class="badge bg-secondary px-2 py-1"><i class="bi bi-dash-circle me-1"></i>Cancelled</span>
+                    {% endif %}
+                </div>
+                <h4 class="fw-bold mb-1">{{ transfer.asset.item_name }}</h4>
+                <p class="text-muted mb-0 small">
+                    <span class="font-monospace fw-bold">{{ transfer.asset.asset_code }}</span> &bull;
+                    {{ transfer.asset.category.name }}
+                    {% if transfer.asset.serial_number %}&bull; <span class="font-monospace">SN: {{ transfer.asset.serial_number }}</span>{% endif %}
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'inventory:asset_detail' transfer.asset.asset_code %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-seam me-1"></i> View Asset
+                </a>
+                <a href="{% url 'transfers:pending_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Queue
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Movement Specifications -->
+    <div class="col-lg-8">
+        <!-- Origin to Destination Route Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-signpost-2 text-primary me-2"></i>Movement Route</h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center g-3">
+                    <!-- Origin -->
+                    <div class="col-md-5">
+                        <div class="p-3 border rounded bg-light h-100">
+                            <span class="badge bg-danger mb-2">Origin Snapshot</span>
+                            <h5 class="fw-bold mb-1">{{ transfer.from_department.name }}</h5>
+                            <div class="text-muted small mb-2"><i class="bi bi-tag me-1"></i>Dept Code: {{ transfer.from_department.code }}</div>
+                            <div class="fw-semibold text-dark">
+                                <i class="bi bi-geo-alt me-1 text-danger"></i>{{ transfer.from_location.name|default:"Unspecified Location" }}
+                            </div>
+                            {% if transfer.from_location.building %}
+                                <small class="text-muted d-block">{{ transfer.from_location.building }}{% if transfer.from_location.room_number %}, Rm {{ transfer.from_location.room_number }}{% endif %}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="col-md-2 text-center text-primary fs-2">
+                        <i class="bi bi-arrow-right d-none d-md-inline"></i>
+                        <i class="bi bi-arrow-down d-md-none"></i>
+                    </div>
+
+                    <!-- Destination -->
+                    <div class="col-md-5">
+                        <div class="p-3 border rounded bg-light border-success h-100">
+                            <span class="badge bg-success mb-2">Target Destination</span>
+                            <h5 class="fw-bold mb-1">{{ transfer.to_department.name }}</h5>
+                            <div class="text-muted small mb-2"><i class="bi bi-tag me-1"></i>Dept Code: {{ transfer.to_department.code }}</div>
+                            <div class="fw-semibold text-dark">
+                                <i class="bi bi-geo-alt-fill me-1 text-success"></i>{{ transfer.to_location.name|default:"Unspecified Location" }}
+                            </div>
+                            {% if transfer.to_location.building %}
+                                <small class="text-muted d-block">{{ transfer.to_location.building }}{% if transfer.to_location.room_number %}, Rm {{ transfer.to_location.room_number }}{% endif %}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Information Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-card-text text-primary me-2"></i>Transfer Justification &amp; Notes</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless table-sm mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 180px;">Transfer Reason:</th>
+                        <td><strong>{{ transfer.reason }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Effective Date:</th>
+                        <td>{{ transfer.transfer_date|date:"F d, Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Operational Remarks:</th>
+                        <td>{{ transfer.remarks|default:"No additional remarks recorded."|linebreaksbr }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Audit & Status Stepper -->
+    <div class="col-lg-4">
+        <!-- Status & Workflow Timeline -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-primary me-2"></i>Lifecycle Timeline</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 position-relative">
+                    <!-- Step 1: Requested -->
+                    <li class="mb-3 d-flex align-items-start">
+                        <div class="rounded-circle bg-primary text-white p-2 me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi bi-send-check"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold small">Requested</div>
+                            <div class="text-muted small">{{ transfer.created_at|date:"M d, Y H:i" }}</div>
+                            <small class="text-muted">By {{ transfer.requested_by.username|default:"System" }}</small>
+                        </div>
+                    </li>
+
+                    <!-- Step 2: Approval / Rejection -->
+                    <li class="mb-3 d-flex align-items-start">
+                        <div class="rounded-circle 
+                            {% if transfer.status in 'APPROVED,COMPLETED' %}bg-info text-dark
+                            {% elif transfer.status == 'REJECTED' %}bg-danger text-white
+                            {% else %}bg-light text-muted border{% endif %} p-2 me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi {% if transfer.status == 'REJECTED' %}bi-x-lg{% else %}bi-check-lg{% endif %}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold small">
+                                {% if transfer.status == 'REJECTED' %}Rejected{% else %}Authorization{% endif %}
+                            </div>
+                            {% if transfer.approved_at %}
+                                <div class="text-muted small">{{ transfer.approved_at|date:"M d, Y H:i" }}</div>
+                                <small class="text-muted">By {{ transfer.approved_by.username|default:"Admin" }}</small>
+                            {% elif transfer.status == 'REJECTED' %}
+                                <div class="text-muted small">{{ transfer.updated_at|date:"M d, Y H:i" }}</div>
+                            {% else %}
+                                <small class="text-muted">Awaiting administrator approval</small>
+                            {% endif %}
+                        </div>
+                    </li>
+
+                    <!-- Step 3: Completion -->
+                    <li class="d-flex align-items-start">
+                        <div class="rounded-circle 
+                            {% if transfer.status == 'COMPLETED' %}bg-success text-white
+                            {% elif transfer.status == 'CANCELLED' %}bg-secondary text-white
+                            {% else %}bg-light text-muted border{% endif %} p-2 me-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi {% if transfer.status == 'CANCELLED' %}bi-slash-circle{% else %}bi-box-seam{% endif %}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold small">
+                                {% if transfer.status == 'CANCELLED' %}Cancelled{% else %}Physical Arrival &amp; Completion{% endif %}
+                            </div>
+                            {% if transfer.completed_at %}
+                                <div class="text-muted small">{{ transfer.completed_at|date:"M d, Y H:i" }}</div>
+                                <small class="text-muted">Processed by {{ transfer.processed_by.username|default:"Custodian" }}</small>
+                            {% elif transfer.cancelled_at %}
+                                <div class="text-muted small">{{ transfer.cancelled_at|date:"M d, Y H:i" }}</div>
+                            {% else %}
+                                <small class="text-muted">Pending physical transfer completion</small>
+                            {% endif %}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Administrative Actions -->
+        {% if request.user.is_admin and transfer.is_open %}
+        <div class="card shadow-sm border-warning">
+            <div class="card-header bg-warning-subtle py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-gear text-dark me-2"></i>Administrative Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if transfer.status == 'PENDING' %}
+                    <form method="post" action="{% url 'transfers:transfer_approve' transfer.pk %}" data-confirm="Approve this transfer request?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-lg me-1"></i> Approve Request
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'transfers:transfer_reject' transfer.pk %}" data-confirm="Reject this transfer request?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-lg me-1"></i> Reject Request
+                        </button>
+                    </form>
+                    {% elif transfer.status == 'APPROVED' %}
+                    <form method="post" action="{% url 'transfers:transfer_complete' transfer.pk %}" data-confirm="Confirm physical arrival and complete this transfer? Asset location will be updated.">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Complete Transfer
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'transfers:transfer_cancel' transfer.pk %}" data-confirm="Cancel this approved transfer?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-slash-circle me-1"></i> Cancel Transfer
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

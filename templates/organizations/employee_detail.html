@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee Accountability: {{ employee.full_name }} - CBA IMS{% endblock %}
+{% block page_title %}Employee Accountability: {{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumbs -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        {% if request.user.role != 'FACULTY' %}
+            <li class="breadcrumb-item"><a href="{% url 'organizations:employee_list' %}" class="text-decoration-none">Employees</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ employee.full_name }}</li>
+    </ol>
+</nav>
+
+<!-- Employee Header Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-badge fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">{{ employee.full_name }}</h5>
+                        <small class="text-muted"><i class="bi bi-tag me-1"></i>ID: {{ employee.employee_id }} &bull; {{ employee.position|default:"Staff" }}</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'assignments:print_accountability' employee.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-printer me-1"></i> Print Certificate
+                    </a>
+                    {% if request.user.is_admin %}
+                    <a href="{% url 'organizations:employee_edit' employee.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i> Edit Profile
+                    </a>
+                    {% endif %}
+                    {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'organizations:employee_list' %}" class="btn btn-sm btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Directory
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr>
+                                <th class="text-muted" style="width: 140px;">Employee ID:</th>
+                                <td><span class="font-monospace fw-bold">{{ employee.employee_id }}</span></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Full Name:</th>
+                                <td>{{ employee.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Email:</th>
+                                <td>{{ employee.email|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Contact #:</th>
+                                <td>{{ employee.contact_number|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr>
+                                <th class="text-muted" style="width: 140px;">Department:</th>
+                                <td><strong>{{ employee.department.name|default:"-" }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Station / Office:</th>
+                                <td>{{ employee.location.name|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">Status:</th>
+                                <td>
+                                    {% if employee.is_active %}
+                                        <span class="badge bg-success">Active Personnel</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted">User Account:</th>
+                                <td>
+                                    {% if employee.user %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="bi bi-person-check me-1"></i>{{ employee.user.username }} ({{ employee.user.get_role_display }})
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">No linked account</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section: CURRENT ACCOUNTABILITY -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-box-seam text-primary me-2"></i>Currently Assigned Property</h5>
+                    <small class="text-muted">Active custodial responsibility assigned to this employee</small>
+                </div>
+                <div>
+                    <span class="badge bg-primary px-3 py-2 fs-6">{{ active_assignments|length }} Item{{ active_assignments|length|pluralize }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Desktop Table View -->
+                <div class="table-responsive desktop-table">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 130px;">Asset Code</th>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Property # / Serial #</th>
+                                <th>Assigned Date</th>
+                                <th>Condition</th>
+                                <th class="text-end" style="width: 140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assign in active_assignments %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="fw-bold font-monospace text-decoration-none">
+                                        {{ assign.asset.asset_code }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <strong>{{ assign.asset.item_name }}</strong>
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-geo-alt me-1 text-primary"></i><strong>Location:</strong> {{ assign.asset.current_location.name|default:"Not designated" }}
+                                        <span class="text-muted">({{ assign.asset.department.code }})</span>
+                                    </div>
+                                    {% if assign.purpose %}
+                                        <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>{{ assign.purpose }}</div>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ assign.asset.category.name }}</span></td>
+                                <td>
+                                    {% if assign.asset.property_number %}
+                                        <span class="badge bg-light text-dark font-monospace border mb-1 d-block" style="width: fit-content;">{{ assign.asset.property_number }}</span>
+                                    {% endif %}
+                                    <small class="font-monospace text-muted">{{ assign.asset.serial_number|default:"-" }}</small>
+                                </td>
+                                <td>{{ assign.assigned_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if assign.condition_at_assignment == 'NEW' %}
+                                        <span class="badge bg-primary">New</span>
+                                    {% elif assign.condition_at_assignment == 'GOOD' %}
+                                        <span class="badge bg-success">Good</span>
+                                    {% elif assign.condition_at_assignment == 'FAIR' %}
+                                        <span class="badge bg-info text-dark">Fair</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ assign.condition_at_assignment }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="action-btn-group justify-content-end">
+                                        <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-info" title="View Asset">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if request.user.is_admin %}
+                                        <a href="{% url 'assignments:asset_return' assign.pk %}" class="btn btn-sm btn-outline-success" title="Return Asset">
+                                            <i class="bi bi-arrow-return-left me-1"></i> Return
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-check2-circle fs-1 d-block mb-2 text-success opacity-75"></i>
+                                    <h6>No Active Property Accountability</h6>
+                                    <p class="small text-muted mb-0">No college assets are currently assigned to this personnel.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Card List View -->
+                <div class="mobile-card-list">
+                    {% for assign in active_assignments %}
+                    <div class="mobile-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="font-monospace text-primary fw-bold">{{ assign.asset.asset_code }}</span>
+                                <div class="card-title mb-0 fw-semibold">{{ assign.asset.item_name }}</div>
+                            </div>
+                            <span class="badge bg-success">Assigned</span>
+                        </div>
+                        <div class="card-meta small">
+                            <div><i class="bi bi-geo-alt me-1 text-primary"></i> Location: <strong>{{ assign.asset.current_location.name|default:"Not designated" }}</strong> ({{ assign.asset.department.code }})</div>
+                            {% if assign.asset.property_number %}
+                                <div><i class="bi bi-tag me-1"></i> Prop #: <span class="font-monospace">{{ assign.asset.property_number }}</span></div>
+                            {% endif %}
+                            <div><i class="bi bi-calendar-event me-1"></i> Assigned: {{ assign.assigned_date|date:"M d, Y" }}</div>
+                            <div><i class="bi bi-heart-pulse me-1"></i> Condition: <strong>{{ assign.get_condition_at_assignment_display }}</strong></div>
+                            {% if assign.purpose %}
+                                <div class="text-muted mt-1"><i class="bi bi-chat-left-quote me-1"></i> {{ assign.purpose }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="card-actions d-flex gap-2">
+                            <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-info flex-grow-1">
+                                <i class="bi bi-eye me-1"></i> Details
+                            </a>
+                            {% if request.user.is_admin %}
+                            <a href="{% url 'assignments:asset_return' assign.pk %}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-arrow-return-left me-1"></i> Return
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-check2-circle fs-2 text-success"></i>
+                        <p class="mb-0">No assets currently assigned to this employee.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section: HISTORICAL ACCOUNTABILITY -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-secondary me-2"></i>Accountability History (Past Releases)</h5>
+                <small class="text-muted">Permanent historical record of previously assigned and returned items</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Asset</th>
+                                <th>Assigned Period</th>
+                                <th>Condition Turnover</th>
+                                <th>Assigned By</th>
+                                <th>Returned By</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hist in assignment_history %}
+                            <tr>
+                                <td>
+                                    <span class="font-monospace fw-bold">{{ hist.asset.asset_code }}</span>
+                                    <div><small>{{ hist.asset.item_name }}</small></div>
+                                </td>
+                                <td>
+                                    <small>
+                                        {{ hist.assigned_date|date:"M d, Y" }} &rarr; <strong>{{ hist.returned_date|date:"M d, Y"|default:"Returned" }}</strong>
+                                    </small>
+                                </td>
+                                <td>
+                                    <small>
+                                        {{ hist.get_condition_at_assignment_display }} &rarr; <span class="badge bg-light text-dark border">{{ hist.get_condition_at_return_display|default:"Good" }}</span>
+                                    </small>
+                                </td>
+                                <td><small>{{ hist.assigned_by.get_full_name|default:hist.assigned_by.username|default:"System" }}</small></td>
+                                <td><small>{{ hist.returned_by.get_full_name|default:hist.returned_by.username|default:"System" }}</small></td>
+                                <td><span class="badge bg-secondary">Returned</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <p class="mb-0 small">No past assignment history recorded for this employee.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section: RECENT SUPPLY ISSUANCES (Phase 5) -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-box-arrow-up text-primary me-2"></i>Recent Consumable Supply Issuances</h5>
+                    <small class="text-muted">Office supplies and materials issued for departmental operational consumption (non-returnable)</small>
+                </div>
+                {% if recent_supply_issuances %}<span class="badge bg-primary">{{ recent_supply_issuances|length }}</span>{% endif %}
+            </div>
+            <div class="card-body">
+                {% if recent_supply_issuances %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Supply Code</th>
+                                <th>Item Description</th>
+                                <th>Category</th>
+                                <th class="text-center">Quantity</th>
+                                <th>Purpose / Reference #</th>
+                                <th>Issued By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_supply_issuances %}
+                            <tr>
+                                <td><small class="fw-semibold text-nowrap">{{ tx.transaction_date|date:"M d, Y" }}</small></td>
+                                <td><span class="font-monospace fw-bold">{{ tx.supply.supply_code }}</span></td>
+                                <td>
+                                    <div class="fw-semibold">{{ tx.supply.item_name }}</div>
+                                    {% if tx.supply.brand %}<small class="text-muted">{{ tx.supply.brand.name }}</small>{% endif %}
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ tx.supply.category.name }}</span></td>
+                                <td class="text-center">
+                                    <span class="fw-bold font-monospace text-primary">{{ tx.quantity }}</span>
+                                    <small class="text-muted">{{ tx.supply.get_unit_display }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ tx.purpose|default:"General office use" }}</small>
+                                    {% if tx.reference_number %}<small class="text-muted d-block font-monospace">Ref: {{ tx.reference_number }}</small>{% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ tx.processed_by.username }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-box-seam fs-2 opacity-50 d-block mb-1"></i>
+                    <p class="small mb-0">No consumable supply issuances on record for this personnel.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

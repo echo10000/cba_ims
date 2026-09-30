@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Maintenance & Repairs</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold">
+            {% if is_replacement %}
+            <i class="bi bi-arrow-repeat text-danger me-2"></i>Equipment Replacement Recommendations
+            {% else %}
+            <i class="bi bi-tools text-primary me-2"></i>Equipment Maintenance & Repair History
+            {% endif %}
+        </h4>
+        <small class="text-muted">
+            {% if is_replacement %}
+            Assets assessed as unserviceable, beyond economic repair, or recommended for replacement
+            {% else %}
+            Recorded equipment defects, diagnostic assessments, repair logs, and operational servicing history
+            {% endif %}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <a href="{% url 'reports:maintenance_cost_summary' %}" class="btn btn-outline-info text-dark btn-sm">
+            <i class="bi bi-cash-stack me-1"></i> Cost Summary
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1{% if query_string %}&{{ query_string }}{% endif %}" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Mode Switch Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if not is_replacement %}active fw-bold{% endif %}" href="{% url 'reports:maintenance' %}">
+            <i class="bi bi-tools me-1"></i> All Maintenance Cases
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if is_replacement %}active fw-bold text-danger{% endif %}" href="{% url 'reports:maintenance_replacements' %}">
+            <i class="bi bi-exclamation-triangle me-1"></i> Replacement Candidates
+        </a>
+    </li>
+</ul>
+
+<!-- Summary Metric Cards -->
+<div class="row g-2 mb-4">
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-primary text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Total Cases</div>
+                <div class="fs-4 fw-bold">{{ summary.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-warning text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Reported</div>
+                <div class="fs-4 fw-bold">{{ summary.reported }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-info text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">In Repair</div>
+                <div class="fs-4 fw-bold">{{ summary.in_repair }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-success text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Completed</div>
+                <div class="fs-4 fw-bold">{{ summary.completed }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-danger text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Replacement</div>
+                <div class="fs-4 fw-bold">{{ summary.for_replacement }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card h-100 border-0 bg-dark text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Recorded Cost</div>
+                <div class="fs-5 fw-bold text-nowrap">₱{{ summary.total_cost|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Search Keywords</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Case #, Code, Issue, Provider..." value="{{ active_filters.q }}">
+                </div>
+            </div>
+            {% if departments|length > 1 %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Department</label>
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.pk }}" {% if active_filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Category</label>
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.pk }}" {% if active_filters.category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not is_replacement %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for val, label in statuses %}
+                    <option value="{{ val }}" {% if active_filters.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ active_filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ active_filters.date_to }}">
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% if is_replacement %}{% url 'reports:maintenance_replacements' %}{% else %}{% url 'reports:maintenance' %}{% endif %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Maintenance Records</h6>
+        <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} item(s) found</span>
+    </div>
+
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Case #</th>
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Issue Summary</th>
+                    <th scope="col">Severity</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Service Provider</th>
+                    <th scope="col" class="text-end">Cost (₱)</th>
+                    <th scope="col">Completed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cases %}
+                <tr>
+                    <td><span class="fw-bold">{{ c.case_number }}</span></td>
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' c.asset.pk %}" class="fw-semibold text-primary text-decoration-none">
+                            {{ c.asset.asset_code }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ c.asset.item_name }}</div>
+                        <small class="text-muted">{{ c.asset.department.name|default:"—" }}</small>
+                    </td>
+                    <td><small class="text-truncate d-inline-block" style="max-width: 200px;">{{ c.issue_description }}</small></td>
+                    <td>
+                        <span class="badge 
+                            {% if c.severity == 'CRITICAL' %}bg-danger
+                            {% elif c.severity == 'HIGH' %}bg-warning text-dark
+                            {% elif c.severity == 'MEDIUM' %}bg-info text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ c.get_severity_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if c.status == 'COMPLETED' %}bg-success
+                            {% elif c.status == 'IN_REPAIR' %}bg-primary
+                            {% elif c.status == 'ASSESSED' %}bg-info text-dark
+                            {% elif c.status == 'FOR_REPLACEMENT' %}bg-danger
+                            {% elif c.status == 'REPORTED' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ c.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ c.service_provider|default:"—" }}</small></td>
+                    <td class="text-end fw-semibold">
+                        {% if c.repair_cost %}₱{{ c.repair_cost|floatformat:2 }}{% else %}—{% endif %}
+                    </td>
+                    <td><small class="text-nowrap">{{ c.repair_completed_at|date:"Y-m-d"|default:"—" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        No maintenance cases found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards List -->
+    <div class="d-md-none p-3">
+        {% for c in cases %}
+        <div class="card mb-3 border shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-bold">{{ c.case_number }}</span>
+                    <span class="badge 
+                        {% if c.status == 'COMPLETED' %}bg-success
+                        {% elif c.status == 'FOR_REPLACEMENT' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ c.get_status_display }}
+                    </span>
+                </div>
+                <div class="fw-semibold text-primary mb-1">
+                    <a href="{% url 'inventory:asset_detail' c.asset.pk %}" class="text-decoration-none">
+                        {{ c.asset.asset_code }} - {{ c.asset.item_name }}
+                    </a>
+                </div>
+                <div class="small text-muted mb-2">{{ c.issue_description|truncatechars:60 }}</div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top small">
+                    <span class="text-muted">Severity: <strong>{{ c.get_severity_display }}</strong></span>
+                    <span class="fw-bold">{% if c.repair_cost %}₱{{ c.repair_cost|floatformat:2 }}{% else %}—{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">
+            No maintenance records found.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+# CBA IMS — Production Direct Dependencies
+# Strategy: Exact tested versions for direct dependencies.
+# This prevents future major package releases from silently breaking deployment,
+# while avoiding platform-specific transitive package pins that break cross-OS installs.
+# All listed versions have been regression-tested against the full test suite.
+
+# Core Web Framework (Django 4.2 LTS)
+Django==4.2.30
+
+# PostgreSQL Database Adapter (Production RDBMS)
+psycopg2-binary==2.9.13
+
+# Image Processing (Asset photo validation & decodability checks)
+Pillow==12.3.0
+
+# Form Rendering & Bootstrap 5 Integration
+django-crispy-forms==2.5
+crispy-bootstrap5==2026.3
+
+# Search and Multi-Criteria Filtering
+django-filter==25.1
+
+# QR Code Generation (Phase 6 Asset Stickers)
+qrcode==8.2
+
+# 12-Factor Environment Variable Management
+python-decouple==3.8
+
+# Operational Reporting & Excel (.xlsx) Export
+openpyxl==3.1.5
+
+# PDF Document Generation
+xhtml2pdf==0.2.21
+
+# Production Static File Serving & Gzip/Brotli Compression
+whitenoise==6.7.0
+
+# Production WSGI Application Server (Linux deployments)
+gunicorn==22.0.0
+
+# Authentication Brute-Force & Credential Stuffing Protection
+django-axes==7.0.1

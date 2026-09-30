@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Asset Transfer - CBA IMS{% endblock %}
+{% block page_title %}Request Asset Transfer{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'transfers:pending_list' %}" class="text-decoration-none">Transfers</a></li>
+        {% if preselected_asset %}
+            <li class="breadcrumb-item"><a href="{% url 'inventory:asset_detail' preselected_asset.asset_code %}" class="text-decoration-none">{{ preselected_asset.asset_code }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">Request Transfer</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <!-- Preselected Asset Origin Card (Read-only snapshot) -->
+        {% if preselected_asset %}
+        <div class="card mb-4 border-primary shadow-sm">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2"></i>Selected Asset for Relocation</h6>
+                <span class="badge bg-white text-primary font-monospace">{{ preselected_asset.asset_code }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Item Name:</div>
+                        <div class="fw-bold">{{ preselected_asset.item_name }}</div>
+                        <small class="text-muted">{{ preselected_asset.category.name }} &bull; {{ preselected_asset.brand.name|default:"Unspecified" }}</small>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Operational Status:</div>
+                        <div>
+                            {% if preselected_asset.status == 'AVAILABLE' %}
+                                <span class="badge bg-success">Available</span>
+                            {% elif preselected_asset.status == 'ASSIGNED' %}
+                                <span class="badge bg-warning text-dark">Assigned</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ preselected_asset.get_status_display }}</span>
+                            {% endif %}
+                            <span class="badge bg-light text-dark border ms-1 font-monospace">SN: {{ preselected_asset.serial_number|default:"None" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Current Origin Department:</div>
+                        <div class="fw-semibold text-danger"><i class="bi bi-building me-1"></i>{{ preselected_asset.department.name }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Current Physical Location:</div>
+                        <div class="fw-semibold text-danger"><i class="bi bi-geo-alt me-1"></i>{{ preselected_asset.current_location.name|default:"Not designated" }}</div>
+                    </div>
+                    {% if current_assignment %}
+                    <div class="col-12 border-top pt-2">
+                        <small class="text-muted">Current Accountable Personnel:</small>
+                        <div class="fw-semibold text-primary">
+                            <i class="bi bi-person-badge me-1"></i>{{ current_assignment.employee.full_name }}
+                            <span class="text-muted fw-normal">({{ current_assignment.employee.department.name|default:"-" }})</span>
+                        </div>
+                        <small class="text-muted fst-italic">Note: Physical transfer preserves personal accountability unless explicitly changed through the assignment workflow.</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Transfer Form Card -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-arrow-left-right text-primary me-2"></i>Initiate Asset Transfer Request
+                </h5>
+                <small class="text-muted">Specify target destination department and physical room for asset reallocation.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate id="transferForm">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Asset Selector (if not preselected) -->
+                    {% if not preselected_asset %}
+                    <div class="mb-3">
+                        <label for="{{ form.asset.id_for_label }}" class="form-label fw-bold">
+                            Select Asset to Transfer <span class="text-danger">*</span>
+                        </label>
+                        {{ form.asset }}
+                        {% if form.asset.help_text %}
+                            <div class="form-text">{{ form.asset.help_text }}</div>
+                        {% endif %}
+                        {% if form.asset.errors %}
+                            <div class="text-danger small mt-1">{{ form.asset.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                        <!-- Hidden input for preselected asset -->
+                        <input type="hidden" name="asset" value="{{ preselected_asset.pk }}">
+                    {% endif %}
+
+                    <!-- Visual Flow: FROM (read-only) -> TO -->
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <div class="row align-items-center g-3">
+                            <div class="col-12 col-md-5">
+                                <div class="p-2 border rounded bg-white">
+                                    <span class="badge bg-secondary text-uppercase mb-1">Origin (Current)</span>
+                                    <div class="fw-bold text-truncate" id="originDeptDisplay">
+                                        {{ preselected_asset.department.name|default:"Selected asset department" }}
+                                    </div>
+                                    <div class="small text-muted text-truncate" id="originLocDisplay">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ preselected_asset.current_location.name|default:"Current location" }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-2 text-center text-primary fs-3">
+                                <i class="bi bi-arrow-down d-md-none"></i>
+                                <i class="bi bi-arrow-right d-none d-md-inline"></i>
+                            </div>
+                            <div class="col-12 col-md-5">
+                                <div class="p-2 border border-success rounded bg-white">
+                                    <span class="badge bg-success text-uppercase mb-1">Target Destination</span>
+                                    <div class="fw-bold text-truncate text-success" id="destSummary">
+                                        Select Target Below &darr;
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Destination Fields -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.to_department.id_for_label }}" class="form-label fw-bold">
+                                Target Destination Department <span class="text-danger">*</span>
+                            </label>
+                            {{ form.to_department }}
+                            {% if form.to_department.help_text %}
+                                <div class="form-text">{{ form.to_department.help_text }}</div>
+                            {% endif %}
+                            {% if form.to_department.errors %}
+                                <div class="text-danger small mt-1">{{ form.to_department.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.to_location.id_for_label }}" class="form-label fw-bold">
+                                Target Destination Location / Room
+                            </label>
+                            {{ form.to_location }}
+                            <div class="form-text">Filtered automatically by selected department.</div>
+                            {% if form.to_location.errors %}
+                                <div class="text-danger small mt-1">{{ form.to_location.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Transfer Date -->
+                    <div class="mb-3">
+                        <label for="{{ form.transfer_date.id_for_label }}" class="form-label fw-bold">
+                            Effective / Scheduled Transfer Date <span class="text-danger">*</span>
+                        </label>
+                        {{ form.transfer_date }}
+                        {% if form.transfer_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.transfer_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-3">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold">
+                            Transfer Justification / Reason <span class="text-danger">*</span>
+                        </label>
+                        {{ form.reason }}
+                        <div class="form-text">State institutional purpose (e.g. Redistribution, Room Reallocation, Faculty Transfer).</div>
+                        {% if form.reason.errors %}
+                            <div class="text-danger small mt-1">{{ form.reason.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-bold">
+                            Operational Remarks &amp; Handling Notes
+                        </label>
+                        {{ form.remarks }}
+                        <div class="form-text">Include handling instructions, carrier details, or accessories dispatched with the asset.</div>
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions d-flex justify-content-end gap-2">
+                        {% if preselected_asset %}
+                            <a href="{% url 'inventory:asset_detail' preselected_asset.asset_code %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% else %}
+                            <a href="{% url 'transfers:pending_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-1"></i> Submit Transfer Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ locations_json|json_script:"locations-data" }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deptSelect = document.getElementById('id_to_department');
+    const locSelect = document.getElementById('id_to_location');
+    const locationsScript = document.getElementById('locations-data');
+    const destSummary = document.getElementById('destSummary');
+
+    if (!deptSelect || !locSelect || !locationsScript) return;
+
+    let allLocations = [];
+    try {
+        allLocations = JSON.parse(locationsScript.textContent);
+    } catch (e) {
+        console.warn('Could not parse location data', e);
+        return;
+    }
+
+    function updateLocationOptions() {
+        const selectedDeptId = parseInt(deptSelect.value, 10);
+        const currentLocVal = locSelect.value;
+
+        // Clear existing options except the first placeholder
+        locSelect.innerHTML = '<option value="">---------</option>';
+
+        if (isNaN(selectedDeptId)) {
+            destSummary.textContent = 'Select Target Department';
+            return;
+        }
+
+        destSummary.textContent = deptSelect.options[deptSelect.selectedIndex].text;
+
+        // Filter locations matching department or common (null dept)
+        const filtered = allLocations.filter(loc => {
+            return !loc.department_id || loc.department_id === selectedDeptId;
+        });
+
+        filtered.forEach(loc => {
+            const opt = document.createElement('option');
+            opt.value = loc.id;
+            let label = loc.name;
+            if (loc.building) label += ' - ' + loc.building;
+            if (loc.room_number) label += ', Rm ' + loc.room_number;
+            opt.textContent = label;
+            if (loc.id.toString() === currentLocVal) {
+                opt.selected = true;
+            }
+            locSelect.appendChild(opt);
+        });
+    }
+
+    deptSelect.addEventListener('change', updateLocationOptions);
+    locSelect.addEventListener('change', function() {
+        if (locSelect.value && locSelect.selectedIndex >= 0) {
+            destSummary.textContent = deptSelect.options[deptSelect.selectedIndex].text + ' / ' + locSelect.options[locSelect.selectedIndex].text;
+        }
+    });
+
+    // Run once on load if a department is pre-selected
+    if (deptSelect.value) {
+        updateLocationOptions();
+    }
+});
+</script>
+{% endblock %}

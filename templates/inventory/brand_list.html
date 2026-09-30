@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Brands - CBA IMS{% endblock %}
+{% block page_title %}Asset Brands{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 350px;">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search brands..." value="{{ request.GET.q }}">
+                </div>
+                <button type="submit" class="btn btn-outline-secondary">Search</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'inventory:brand_list' %}" class="btn btn-outline-danger" title="Clear search"><i class="bi bi-x-circle"></i></a>
+                {% endif %}
+            </form>
+            <a href="{% url 'inventory:brand_create' %}" class="btn btn-primary text-nowrap">
+                <i class="bi bi-plus-lg"></i> Add Brand
+            </a>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive desktop-table">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Brand Name</th>
+                        <th class="text-end" style="width: 100px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for brand in object_list %}
+                    <tr>
+                        <td><strong>{{ brand.name }}</strong></td>
+                        <td class="text-end">
+                            <a href="{% url 'inventory:brand_edit' brand.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center py-4 text-muted">No brands found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-card-list">
+            {% for brand in object_list %}
+            <div class="mobile-card d-flex justify-content-between align-items-center">
+                <div class="card-title mb-0"><strong>{{ brand.name }}</strong></div>
+                <a href="{% url 'inventory:brand_edit' brand.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-bookmark"></i>
+                <p>No brands found.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

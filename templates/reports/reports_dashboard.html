@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}Operational Reports & Analytics - CBA IMS{% endblock %}
+{% block page_title %}Operational Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1 fw-bold">
+            <i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Institutional Reports & Operational Analytics
+        </h4>
+        <p class="text-muted small mb-0">
+            Authoritative, real-time reporting across physical durable assets, personnel accountability, supplies ledger, equipment loans, maintenance, and disposals.
+            {% if chair_dept %}<span class="badge bg-info text-dark ms-1">Scoped: {{ chair_dept.name }}</span>{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:executive_summary_xlsx' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Executive Summary (.xlsx)
+        </a>
+    </div>
+</div>
+
+<!-- Category Cards Grid -->
+<div class="row g-4">
+
+    <!-- 1. Asset Inventory Category -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-primary">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded me-3">
+                        <i class="bi bi-box-seam fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Asset Inventory</h5>
+                        <small class="text-muted">{{ active_assets|default:"0" }} Active &bull; {{ disposed_assets|default:"0" }} Disposed</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Comprehensive catalog of capital, durable, and semi-expendable institutional equipment.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:asset_inventory' %}?scope=active" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-check2-circle text-success me-2"></i>Active Asset Inventory</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:asset_inventory' %}?scope=disposed" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-archive text-secondary me-2"></i>Disposed Assets Archive</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:asset_by_department' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-building text-primary me-2"></i>Assets Grouped by Department</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:asset_by_location' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-geo-alt text-info me-2"></i>Assets Grouped by Location / Room</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Personnel Accountability Category -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-warning">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-warning bg-opacity-10 text-warning rounded me-3">
+                        <i class="bi bi-person-badge fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Personnel Accountability</h5>
+                        <small class="text-muted">{{ active_assignments|default:"0" }} Active Custody Assignments</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Property Acknowledgement Receipts (PAR), faculty custody, and turnover audit trails.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:accountability_active' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-person-check text-warning me-2"></i>Current Faculty Accountability</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:accountability_history' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-clock-history text-secondary me-2"></i>Assignment Turnover History</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'organizations:employee_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-people text-primary me-2"></i>Individual Employee Lookup</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Asset Movement & Transfers -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-info">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-info bg-opacity-10 text-info rounded me-3">
+                        <i class="bi bi-arrow-left-right fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Movement & Transfers</h5>
+                        <small class="text-muted">{{ total_transfers|default:"0" }} Recorded Relocations</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Inter-departmental movement, physical room transfers, and custody transfer history.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:transfers' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-arrows-move text-info me-2"></i>Complete Transfer History</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:transfers' %}?status=COMPLETED" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-check-circle text-success me-2"></i>Completed Relocations</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Equipment Borrowing & Loans -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-purple" style="border-top-color: #6f42c1 !important;">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 rounded me-3" style="background-color: #f3e8ff; color: #6f42c1;">
+                        <i class="bi bi-hand-index fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Equipment Borrowing</h5>
+                        <small class="text-muted">{{ active_loans|default:"0" }} Currently On Loan</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Temporary classroom equipment loans, reservations, returns, and overdue tracking.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:borrowing' %}?status=ACTIVE_LOANS" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-play-circle text-primary me-2"></i>Active Equipment Loans</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:borrowing' %}?overdue=1" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-exclamation-triangle text-danger me-2"></i>Overdue Borrowing Report</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:borrowing' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-journal-text text-secondary me-2"></i>Complete Borrowing History</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Maintenance & Repair History -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-danger">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-danger bg-opacity-10 text-danger rounded me-3">
+                        <i class="bi bi-tools fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Maintenance & Repairs</h5>
+                        <small class="text-muted">{{ open_maintenance|default:"0" }} Open Technical Cases</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Defect reporting, diagnostic evaluation, repair expenditures, and replacement recommendations.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:maintenance' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-wrench-adjustable text-danger me-2"></i>Maintenance & Defect Cases</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:maintenance_cost_summary' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-cash-stack text-success me-2"></i>Maintenance Cost Summary</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:maintenance_replacements' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-arrow-repeat text-warning me-2"></i>Replacement Recommendations</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Physical Inventory Verification -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-success">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-success bg-opacity-10 text-success rounded me-3">
+                        <i class="bi bi-patch-check fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Physical Verification</h5>
+                        <small class="text-muted">QR & Barcode Audit Verification</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Annual physical inventory audits, location/condition discrepancy detection, and unverified assets.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:verification' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-clipboard-check text-success me-2"></i>Verification Audit Logs</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:verification_mismatches' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-exclamation-octagon text-danger me-2"></i>Audit Discrepancies & Mismatches</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:verification_never_verified' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-question-circle text-warning me-2"></i>Never-Verified Assets</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Consumable Supplies -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-teal" style="border-top-color: #20c997 !important;">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 rounded me-3" style="background-color: #e6fcf5; color: #20c997;">
+                        <i class="bi bi-cart4 fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Consumable Supplies</h5>
+                        <small class="text-muted">Ledger-Derived Stock Balances</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Office supplies, paper, toner stock levels, department issuances, and replenishment tracking.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:supplies_stock' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-boxes text-teal me-2"></i>Current Stock Levels</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:supplies_stock' %}?low_stock=1" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-bell text-danger me-2"></i>Low-Stock & Depleted Alert</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:supplies_by_department' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-building text-primary me-2"></i>Supply Usage by Department</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:supplies_transactions' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-receipt text-secondary me-2"></i>Stock Transaction Ledger</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Property Disposal & Retirement -->
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-dark">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-dark bg-opacity-10 text-dark rounded me-3">
+                        <i class="bi bi-archive fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Property Disposal</h5>
+                        <small class="text-muted">{{ completed_disposals|default:"0" }} Retired Assets</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">End-of-service physical disposal, scrap salvage, external transfers, donations, and retirement records.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:disposals' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-file-earmark-x text-dark me-2"></i>Disposal Records Archive</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a href="{% url 'reports:disposals' %}?status=COMPLETED" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-check2-all text-success me-2"></i>Completed Physical Disposals</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. System Activity & Audit Trail (Admin only) -->
+    {% if is_admin %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0 border-top border-4 border-secondary">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-2 bg-secondary bg-opacity-10 text-secondary rounded me-3">
+                        <i class="bi bi-shield-lock fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">System Audit Trail</h5>
+                        <small class="text-muted">Administrator Only</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">Immutable chronological audit log capturing all database mutations, lifecycle changes, and user actions.</p>
+                <div class="list-group list-group-flush small">
+                    <a href="{% url 'reports:audit_log' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <span><i class="bi bi-journal-code text-secondary me-2"></i>Audit Log Report</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

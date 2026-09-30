@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Supply Transactions Report - CBA IMS{% endblock %}
+{% block page_title %}Supply Transactions Audit Log{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'reports:supplies_stock' %}">Supplies</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Transactions</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold"><i class="bi bi-receipt text-primary me-2"></i>Consumable Supply Transactions Ledger</h4>
+        <small class="text-muted">Immutable transaction history: Stock-In receipt, Stock-Out issuance to departments/faculty, and inventory adjustments</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <a href="{% url 'reports:supplies_by_department' %}" class="btn btn-outline-info text-dark btn-sm">
+            <i class="bi bi-building me-1"></i> Department Usage
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv{% if query_string %}&{{ query_string }}{% endif %}"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1{% if query_string %}&{{ query_string }}{% endif %}" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Metric Cards -->
+<div class="row g-2 mb-4">
+    <div class="col-6 col-sm-3">
+        <div class="card h-100 border-0 bg-primary text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Total Ledger Events</div>
+                <div class="fs-4 fw-bold">{{ summary.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-3">
+        <div class="card h-100 border-0 bg-success text-white shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-white-50 small text-uppercase fw-semibold">Stock In (Receipts)</div>
+                <div class="fs-4 fw-bold">{{ summary.stock_in_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-3">
+        <div class="card h-100 border-0 bg-info text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Stock Out (Issuances)</div>
+                <div class="fs-4 fw-bold">{{ summary.stock_out_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-3">
+        <div class="card h-100 border-0 bg-warning text-dark shadow-sm">
+            <div class="card-body p-3">
+                <div class="text-dark-50 small text-uppercase fw-semibold">Adjustments</div>
+                <div class="fs-4 fw-bold">{{ summary.adjust_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Card -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Search Keywords</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Code, Item, Recipient, Remarks..." value="{{ active_filters.q }}">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Transaction Type</label>
+                <select name="transaction_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for val, label in types %}
+                    <option value="{{ val }}" {% if active_filters.transaction_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if departments|length > 1 %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Department</label>
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.pk }}" {% if active_filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ active_filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ active_filters.date_to }}">
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'reports:supplies_transactions' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Ledger Entries</h6>
+        <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} entry(ies)</span>
+    </div>
+
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Date & Time</th>
+                    <th scope="col">Supply Code</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Type</th>
+                    <th scope="col" class="text-center">Quantity</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Recipient / Employee</th>
+                    <th scope="col">Logged By</th>
+                    <th scope="col">Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr>
+                    <td><small class="text-nowrap">{{ t.created_at|date:"Y-m-d H:i" }}</small></td>
+                    <td><span class="fw-bold">{{ t.supply.supply_code }}</span></td>
+                    <td>{{ t.supply.item_name }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if t.transaction_type == 'IN' %}bg-success
+                            {% elif t.transaction_type == 'OUT' %}bg-primary
+                            {% else %}bg-warning text-dark{% endif %}">
+                            {{ t.get_transaction_type_display }}
+                        </span>
+                    </td>
+                    <td class="text-center fw-bold">
+                        {% if t.transaction_type == 'IN' %}
+                        <span class="text-success">+{{ t.quantity }} {{ t.supply.unit }}</span>
+                        {% elif t.transaction_type == 'OUT' %}
+                        <span class="text-primary">-{{ t.quantity }} {{ t.supply.unit }}</span>
+                        {% else %}
+                        <span>{{ t.quantity }} {{ t.supply.unit }}</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ t.department.name|default:"—" }}</small></td>
+                    <td><small>{{ t.employee.full_name|default:"—" }}</small></td>
+                    <td><small>{{ t.processed_by.username|default:"System" }}</small></td>
+                    <td><small class="text-muted">{{ t.remarks|truncatechars:35|default:"—" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">No supply ledger transactions found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards List -->
+    <div class="d-md-none p-3">
+        {% for t in transactions %}
+        <div class="card mb-3 border shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge 
+                        {% if t.transaction_type == 'IN' %}bg-success
+                        {% elif t.transaction_type == 'OUT' %}bg-primary
+                        {% else %}bg-warning text-dark{% endif %}">
+                        {{ t.get_transaction_type_display }}
+                    </span>
+                    <span class="fw-bold">
+                        {% if t.transaction_type == 'IN' %}+{{ t.quantity }}
+                        {% elif t.transaction_type == 'OUT' %}-{{ t.quantity }}
+                        {% else %}{{ t.quantity }}{% endif %} {{ t.supply.unit }}
+                    </span>
+                </div>
+                <div class="fw-semibold text-primary mb-1">{{ t.supply.supply_code }} - {{ t.supply.item_name }}</div>
+                <div class="small text-muted mb-2">
+                    Dept: {{ t.department.name|default:"—" }} &bull; Recipient: {{ t.employee.full_name|default:"—" }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                    <span>{{ t.created_at|date:"Y-m-d H:i" }}</span>
+                    <span>By: {{ t.processed_by.username|default:"System" }}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">No supply transactions found.</div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

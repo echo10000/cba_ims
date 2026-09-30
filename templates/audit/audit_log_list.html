@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs - CBA IMS{% endblock %}
+{% block page_title %}System Audit Logs{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 400px;">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search by action, model, object, user..." value="{{ request.GET.q }}">
+                </div>
+                <button type="submit" class="btn btn-outline-secondary">Filter</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'audit:audit_log_list' %}" class="btn btn-outline-danger" title="Clear filter"><i class="bi bi-x-circle"></i></a>
+                {% endif %}
+            </form>
+            <div class="text-muted small">
+                <i class="bi bi-shield-lock me-1"></i> Immutable Records
+            </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive desktop-table">
+            <table class="table table-hover align-middle table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 170px;">Timestamp</th>
+                        <th style="width: 120px;">User</th>
+                        <th style="width: 100px;">Action</th>
+                        <th style="width: 140px;">Model</th>
+                        <th>Object</th>
+                        <th style="width: 130px;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in object_list %}
+                    <tr>
+                        <td class="text-nowrap small text-muted">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td><strong>{{ log.user.username|default:"System" }}</strong></td>
+                        <td>
+                            {% if 'CREATE' in log.action or log.action == 'CREATED' %}
+                                <span class="badge bg-success">{{ log.action }}</span>
+                            {% elif 'UPDATE' in log.action or log.action == 'UPDATED' %}
+                                <span class="badge bg-primary">{{ log.action }}</span>
+                            {% elif 'DELETE' in log.action or log.action == 'DELETED' %}
+                                <span class="badge bg-danger">{{ log.action }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ log.model_name }}</code></td>
+                        <td class="text-break">{{ log.object_repr }}</td>
+                        <td class="small text-muted font-monospace">{{ log.ip_address|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No audit logs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-card-list">
+            {% for log in object_list %}
+            <div class="mobile-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        {% if 'CREATE' in log.action or log.action == 'CREATED' %}
+                            <span class="badge bg-success">{{ log.action }}</span>
+                        {% elif 'UPDATE' in log.action or log.action == 'UPDATED' %}
+                            <span class="badge bg-primary">{{ log.action }}</span>
+                        {% elif 'DELETE' in log.action or log.action == 'DELETED' %}
+                            <span class="badge bg-danger">{{ log.action }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ log.action }}</span>
+                        {% endif %}
+                        <code class="ms-1">{{ log.model_name }}</code>
+                    </div>
+                    <small class="text-muted">{{ log.timestamp|date:"M d, H:i" }}</small>
+                </div>
+                <div class="card-meta">
+                    <div class="fw-semibold text-break mb-1">{{ log.object_repr }}</div>
+                    <div><i class="bi bi-person me-1"></i> {{ log.user.username|default:"System" }}</div>
+                    {% if log.ip_address %}
+                    <div class="small text-muted"><i class="bi bi-hdd-network me-1"></i> {{ log.ip_address }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-journal-text"></i>
+                <p>No audit logs found.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'includes/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

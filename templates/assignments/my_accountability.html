@@ -1,0 +1,554 @@
+{% extends 'base.html' %}
+
+{% block title %}My Property Accountability - CBA IMS{% endblock %}
+{% block page_title %}My Property Accountability{% endblock %}
+
+{% block content %}
+{% if not employee %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm text-center p-4 my-5">
+            <div class="mb-3 text-warning">
+                <i class="bi bi-person-exclamation fs-1"></i>
+            </div>
+            <h5 class="fw-bold mb-2">No Linked Employee Record</h5>
+            <p class="text-muted small mb-4">
+                Your user account (<strong>{{ request.user.username }}</strong>) is not currently associated with an Employee profile in the College directory. Please contact the Property Custodian or System Administrator to link your profile.
+            </p>
+            <div>
+                <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-speedometer2 me-1"></i> Return to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+
+<!-- Employee Header Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+            <div class="col-12 col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary text-white p-3 me-3 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="bi bi-person-badge fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">{{ employee.full_name }}</h4>
+                        <div class="text-muted small">
+                            <span class="badge bg-light text-dark border font-monospace me-1">{{ employee.employee_id }}</span>
+                            <i class="bi bi-building me-1"></i>{{ employee.department.name|default:"College of Business Administration" }}
+                            {% if employee.position %}&bull; {{ employee.position }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-5 text-md-end">
+                <a href="{% url 'inventory:asset_scan' %}" class="btn btn-outline-primary btn-sm me-1">
+                    <i class="bi bi-camera me-1"></i> Scan QR
+                </a>
+                <a href="{% url 'assignments:print_accountability' employee.pk %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-printer me-1"></i> Print Certificate
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accountability Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="card stat-card bg-primary text-white h-100 shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Active Items</span>
+                    <i class="bi bi-box-seam stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ active_assignments|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card stat-card bg-success text-white h-100 shadow-sm">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-white-50">Clearances / Past Items</span>
+                    <i class="bi bi-check-circle stat-icon text-white-50"></i>
+                </div>
+                <div class="stat-value">{{ historical_assignments|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card stat-card bg-light text-dark h-100 shadow-sm border">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="stat-label text-muted">Accountability Status</span>
+                    <i class="bi bi-shield-check stat-icon text-success"></i>
+                </div>
+                <div class="stat-value fs-5 mt-1">
+                    {% if active_assignments %}
+                        <span class="badge bg-warning text-dark">Active Equipment Custody</span>
+                    {% else %}
+                        <span class="badge bg-success">Cleared of Accountability</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Accountabilities -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-person-check text-primary me-2"></i>Currently Assigned Property & Equipment
+            <span class="badge bg-primary ms-1">{{ active_assignments|length }}</span>
+        </h6>
+    </div>
+
+    {% if active_assignments %}
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset Code</th>
+                        <th>Item Description</th>
+                        <th>Category</th>
+                        <th>Serial / Property #</th>
+                        <th>Assigned Date</th>
+                        <th>Expected Return</th>
+                        <th>Condition</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assign in active_assignments %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                {{ assign.asset.asset_code }}
+                            </a>
+                        </td>
+                        <td>
+                            <strong>{{ assign.asset.item_name }}</strong>
+                            {% if assign.asset.status == 'MAINTENANCE' %}
+                                <span class="badge bg-warning text-dark ms-1"><i class="bi bi-wrench me-1"></i>Under Maintenance</span>
+                            {% endif %}
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-geo-alt me-1 text-primary"></i><strong>Location:</strong> {{ assign.asset.current_location.name|default:"Not designated" }}
+                                <span class="text-muted">({{ assign.asset.department.code }})</span>
+                            </div>
+                            {% if assign.purpose %}
+                                <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>{{ assign.purpose }}</div>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ assign.asset.category.name }}</span></td>
+                        <td>
+                            <div class="font-monospace small">
+                                {% if assign.asset.serial_number %}SN: {{ assign.asset.serial_number }}<br>{% endif %}
+                                {% if assign.asset.property_number %}PN: {{ assign.asset.property_number }}{% endif %}
+                                {% if not assign.asset.serial_number and not assign.asset.property_number %}-{% endif %}
+                            </div>
+                        </td>
+                        <td>{{ assign.assigned_date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if assign.expected_return_date %}
+                                {{ assign.expected_return_date|date:"M d, Y" }}
+                            {% else %}
+                                <span class="text-muted small">Indefinite</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if assign.condition_at_assignment == 'NEW' %}<span class="badge bg-primary">New</span>
+                            {% elif assign.condition_at_assignment == 'GOOD' %}<span class="badge bg-success">Good</span>
+                            {% elif assign.condition_at_assignment == 'FAIR' %}<span class="badge bg-info text-dark">Fair</span>
+                            {% elif assign.condition_at_assignment == 'POOR' %}<span class="badge bg-warning text-dark">Poor</span>
+                            {% else %}<span class="badge bg-danger">Unserviceable</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-primary" title="Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'maintenance:report_create_specific' assign.asset.asset_code %}" class="btn btn-sm btn-outline-danger" title="Report Defect / Damage">
+                                    <i class="bi bi-exclamation-octagon"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card List View -->
+    <div class="mobile-card-list p-3">
+        {% for assign in active_assignments %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                        {{ assign.asset.asset_code }}
+                    </a>
+                    <h6 class="mb-0 fw-bold mt-1">{{ assign.asset.item_name }}</h6>
+                </div>
+                <div>
+                    <span class="badge bg-primary">{{ assign.asset.category.code }}</span>
+                    {% if assign.asset.status == 'MAINTENANCE' %}
+                        <span class="badge bg-warning text-dark d-block mt-1"><i class="bi bi-wrench me-1"></i>Repairing</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-meta">
+                <div>
+                    <i class="bi bi-geo-alt text-primary me-1"></i><strong>Location:</strong> {{ assign.asset.current_location.name|default:"Not designated" }} ({{ assign.asset.department.code }})
+                </div>
+                {% if assign.asset.serial_number %}
+                <div>
+                    <i class="bi bi-upc text-muted me-1"></i> SN: <span class="font-monospace">{{ assign.asset.serial_number }}</span>
+                </div>
+                {% endif %}
+                <div>
+                    <i class="bi bi-calendar-check text-muted me-1"></i> Assigned: {{ assign.assigned_date|date:"M d, Y" }}
+                </div>
+                {% if assign.expected_return_date %}
+                <div>
+                    <i class="bi bi-calendar-event text-muted me-1"></i> Expected Return: {{ assign.expected_return_date|date:"M d, Y" }}
+                </div>
+                {% endif %}
+                <div>
+                    <i class="bi bi-shield-check text-muted me-1"></i> Condition: {{ assign.get_condition_at_assignment_display }}
+                </div>
+                {% if assign.purpose %}
+                <div>
+                    <i class="bi bi-card-text text-muted me-1"></i> Purpose: {{ assign.purpose }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="card-actions d-flex gap-2">
+                <a href="{% url 'inventory:asset_detail' assign.asset.asset_code %}" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="bi bi-eye me-1"></i> Details
+                </a>
+                <a href="{% url 'maintenance:report_create_specific' assign.asset.asset_code %}" class="btn btn-sm btn-outline-danger flex-fill">
+                    <i class="bi bi-exclamation-octagon me-1"></i> Report Issue
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state py-5 text-center">
+        <i class="bi bi-check2-circle text-success fs-1 mb-2"></i>
+        <h5 class="fw-bold">No Active Equipment Assigned</h5>
+        <p class="text-muted small mb-0">You currently have no durable physical assets or equipment assigned under your accountability.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Past Accountability & Clearance Records -->
+{% if historical_assignments %}
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-clock-history text-secondary me-2"></i>Returned Equipment & Clearance History
+            <span class="badge bg-secondary ms-1">{{ historical_assignments|length }}</span>
+        </h6>
+    </div>
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset Code</th>
+                        <th>Item Description</th>
+                        <th>Assigned Date</th>
+                        <th>Returned Date</th>
+                        <th>Condition Returned</th>
+                        <th>Returned Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historical_assignments %}
+                    <tr>
+                        <td>
+                            <span class="font-monospace fw-bold">{{ h.asset.asset_code }}</span>
+                        </td>
+                        <td>{{ h.asset.item_name }}</td>
+                        <td>{{ h.assigned_date|date:"M d, Y" }}</td>
+                        <td><span class="text-success"><i class="bi bi-check-lg me-1"></i>{{ h.returned_date|date:"M d, Y"|default:"Returned" }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ h.get_condition_at_return_display|default:"Good" }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ h.remarks|default:"-" }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mobile-card-list p-3">
+        {% for h in historical_assignments %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="font-monospace fw-bold">{{ h.asset.asset_code }}</span>
+                <span class="badge bg-secondary">Returned</span>
+            </div>
+            <div class="fw-semibold">{{ h.asset.item_name }}</div>
+            <div class="card-meta mt-1">
+                <div>Returned: {{ h.returned_date|date:"M d, Y" }} &bull; Condition: {{ h.get_condition_at_return_display|default:"Good" }}</div>
+                {% if h.remarks %}<div class="small text-muted">{{ h.remarks }}</div>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- My Temporary Borrowings & Reservations (Phase 7) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-hand-index text-primary me-2"></i>My Temporary Borrowings &amp; Equipment Reservations
+            {% if my_active_borrowings or my_pending_reservations %}
+                <span class="badge bg-info text-dark ms-1">{{ my_active_borrowings|length|add:my_pending_reservations|length }} Active</span>
+            {% endif %}
+        </h6>
+        <div>
+            <a href="{% url 'borrowing:request_create' %}" class="btn btn-primary btn-sm me-1">
+                <i class="bi bi-plus-circle me-1"></i> Request Loan
+            </a>
+            <a href="{% url 'borrowing:my_borrowings' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-clock-history me-1"></i> Full Loan History
+            </a>
+        </div>
+    </div>
+
+    {% if my_active_borrowings or my_pending_reservations %}
+    <!-- Active loans and approved/pending reservations table -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Status</th>
+                        <th>Asset</th>
+                        <th>Item Description</th>
+                        <th>Start / Release</th>
+                        <th>Scheduled Return</th>
+                        <th>Purpose</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in my_active_borrowings %}
+                    <tr class="{% if b.is_overdue %}table-danger{% else %}table-info-subtle{% endif %}">
+                        <td>
+                            {% if b.is_overdue %}
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+                            {% else %}
+                                <span class="badge bg-primary">Currently Borrowed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'inventory:asset_detail' b.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                {{ b.asset.asset_code }}
+                            </a>
+                        </td>
+                        <td>
+                            <strong>{{ b.asset.item_name }}</strong>
+                            <div class="small text-muted">{{ b.asset.category.name }}</div>
+                        </td>
+                        <td>{{ b.released_at|date:"M d, g:i a" }}</td>
+                        <td><strong>{{ b.requested_return|date:"M d, Y, g:i a" }}</strong></td>
+                        <td><small class="text-muted">{{ b.purpose|truncatechars:35 }}</small></td>
+                        <td class="text-end">
+                            <a href="{% url 'borrowing:borrowing_detail' b.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% for b in my_pending_reservations %}
+                    <tr>
+                        <td>
+                            {% if b.status == 'APPROVED' %}
+                                <span class="badge bg-info text-dark">Approved Reservation</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pending Approval</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="font-monospace fw-bold">{{ b.asset.asset_code }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ b.asset.item_name }}</strong>
+                            <div class="small text-muted">{{ b.asset.category.name }}</div>
+                        </td>
+                        <td>{{ b.requested_start|date:"M d, Y, g:i a" }}</td>
+                        <td>{{ b.requested_return|date:"M d, Y, g:i a" }}</td>
+                        <td><small class="text-muted">{{ b.purpose|truncatechars:35 }}</small></td>
+                        <td class="text-end">
+                            <a href="{% url 'borrowing:borrowing_detail' b.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-card-list p-3">
+        {% for b in my_active_borrowings %}
+        <div class="mobile-card border-start border-4 {% if b.is_overdue %}border-danger{% else %}border-primary{% endif %}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="font-monospace fw-bold">{{ b.asset.asset_code }}</span>
+                {% if b.is_overdue %}
+                    <span class="badge bg-danger">Overdue</span>
+                {% else %}
+                    <span class="badge bg-primary">Borrowed</span>
+                {% endif %}
+            </div>
+            <div class="fw-semibold">{{ b.asset.item_name }}</div>
+            <div class="card-meta mt-1">
+                <div>Due: <strong>{{ b.requested_return|date:"M d, Y, g:i a" }}</strong></div>
+                <div class="small text-muted">{{ b.purpose }}</div>
+            </div>
+            <div class="card-actions">
+                <a href="{% url 'borrowing:borrowing_detail' b.pk %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-eye me-1"></i> View Loan Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for b in my_pending_reservations %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="font-monospace fw-bold">{{ b.asset.asset_code }}</span>
+                {% if b.status == 'APPROVED' %}
+                    <span class="badge bg-info text-dark">Approved</span>
+                {% else %}
+                    <span class="badge bg-secondary">Pending</span>
+                {% endif %}
+            </div>
+            <div class="fw-semibold">{{ b.asset.item_name }}</div>
+            <div class="card-meta mt-1">
+                <div>Reservation: {{ b.requested_start|date:"M d, g:i a" }} &rarr; {{ b.requested_return|date:"M d, g:i a" }}</div>
+                <div class="small text-muted">{{ b.purpose }}</div>
+            </div>
+            <div class="card-actions">
+                <a href="{% url 'borrowing:borrowing_detail' b.pk %}" class="btn btn-sm btn-outline-secondary w-100">
+                    <i class="bi bi-eye me-1"></i> View Reservation Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-calendar-check fs-2 opacity-50 d-block mb-1"></i>
+        <h6 class="fw-bold mb-1">No Active Borrowings or Reservations</h6>
+        <p class="small mb-3">You currently do not have any temporary equipment loans checked out or pending approval.</p>
+        <a href="{% url 'borrowing:request_create' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-hand-index me-1"></i> Request Equipment Loan
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- My Consumable Supply Issuances (Phase 5) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-box-arrow-up text-primary me-2"></i>My Consumable Supply Issuances
+            {% if my_supply_issuances %}<span class="badge bg-primary ms-1">{{ my_supply_issuances|length }}</span>{% endif %}
+        </h6>
+        <span class="badge bg-light text-muted border">Consumption Records</span>
+    </div>
+    <div class="card-body p-3 bg-light border-bottom">
+        <div class="small text-muted">
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            <strong>Consumable Materials Notice:</strong> Supplies (e.g., bond paper, printer ink, whiteboard markers) are issued for departmental operational use and do not require property return.
+        </div>
+    </div>
+    {% if my_supply_issuances %}
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Supply Code</th>
+                        <th>Item Description</th>
+                        <th>Category</th>
+                        <th class="text-center">Quantity Issued</th>
+                        <th>Purpose / Ref #</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in my_supply_issuances %}
+                    <tr>
+                        <td><small class="fw-semibold text-nowrap">{{ tx.transaction_date|date:"M d, Y" }}</small></td>
+                        <td><span class="font-monospace fw-bold">{{ tx.supply.supply_code }}</span></td>
+                        <td>
+                            <div class="fw-semibold">{{ tx.supply.item_name }}</div>
+                            {% if tx.supply.brand %}<small class="text-muted">{{ tx.supply.brand.name }}</small>{% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ tx.supply.category.name }}</span></td>
+                        <td class="text-center">
+                            <span class="fw-bold font-monospace text-primary">{{ tx.quantity }}</span>
+                            <small class="text-muted">{{ tx.supply.get_unit_display }}</small>
+                        </td>
+                        <td>
+                            <div class="small">{{ tx.purpose|default:"General departmental usage" }}</div>
+                            {% if tx.reference_number %}<small class="text-muted font-monospace">Slip: {{ tx.reference_number }}</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mobile-card-list p-3">
+        {% for tx in my_supply_issuances %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="font-monospace small text-primary">{{ tx.supply.supply_code }}</span>
+                <span class="small text-muted">{{ tx.transaction_date|date:"M d, Y" }}</span>
+            </div>
+            <div class="fw-semibold">{{ tx.supply.item_name }}</div>
+            <div class="p-2 rounded bg-light border my-2 d-flex justify-content-between align-items-center">
+                <small class="text-muted">Quantity Issued</small>
+                <span class="fw-bold text-primary font-monospace">{{ tx.quantity }} {{ tx.supply.get_unit_display }}</span>
+            </div>
+            <div class="card-meta">
+                <small class="text-muted d-block">{{ tx.purpose|default:"Operational allocation" }}</small>
+                {% if tx.reference_number %}<small class="text-muted font-monospace">Ref: {{ tx.reference_number }}</small>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-box-seam fs-2 opacity-50 d-block mb-1"></i>
+        <p class="small mb-0">No consumable supply issuances have been recorded under your name.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endif %}
+{% endblock %}

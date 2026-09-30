@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Department Supply Usage - CBA IMS{% endblock %}
+{% block page_title %}Departmental Supply Usage Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'reports:supplies_stock' %}">Supplies</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Department Usage</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold"><i class="bi bi-building text-primary me-2"></i>Departmental Supply Consumption</h4>
+        <small class="text-muted">Breakdown of consumable supplies issued by academic and administrative department, grouped by discrete unit of measure</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:supplies_transactions' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Transactions Ledger
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Report
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Department Filter Toolbar -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            {% if departments|length > 1 %}
+            <div class="col-md-4">
+                <label class="form-label small fw-bold mb-1">Filter Department</label>
+                <select name="department" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.pk }}" {% if active_filters.department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-3">
+                <label class="form-label small fw-bold mb-1">Issued From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ active_filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small fw-bold mb-1">Issued To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ active_filters.date_to }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'reports:supplies_by_department' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-table text-primary me-2"></i>Consumption by Department & Supply Item</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Department</th>
+                    <th scope="col">Supply Code</th>
+                    <th scope="col">Supply Item Name</th>
+                    <th scope="col">Unit of Measure</th>
+                    <th scope="col" class="text-center">Total Quantity Issued</th>
+                    <th scope="col" class="text-center">Issuance Events</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in usage_data %}
+                <tr>
+                    <td><div class="fw-bold">{{ row.department__name }}</div></td>
+                    <td><span class="badge bg-light text-dark border">{{ row.supply__supply_code }}</span></td>
+                    <td>{{ row.supply__item_name }}</td>
+                    <td><small class="text-muted">{{ row.supply__unit }}</small></td>
+                    <td class="text-center fw-bold text-primary fs-6">{{ row.total_issued }} {{ row.supply__unit }}</td>
+                    <td class="text-center"><span class="badge bg-secondary">{{ row.issuance_count }}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        No supply issuance records recorded for the specified criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

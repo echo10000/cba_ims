@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="mb-3">
+            <a href="{% url 'maintenance:maintenance_detail' case.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Case {{ case.case_number }}
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-success-subtle p-2 me-3 text-success">
+                        <i class="bi bi-check2-circle fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold">Complete Repair &amp; Reintegrate Asset</h5>
+                        <small class="text-muted">Document service outcome, replaced parts, repair costs, and restore asset to appropriate operational status.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <!-- Operational Reintegration Info Banner -->
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <div class="d-flex">
+                        <i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>
+                        <div>
+                            <div class="fw-bold">Automatic Status Resolution Policy</div>
+                            <div class="small">
+                                Upon saving completion:
+                                <ul class="mb-0 ps-3">
+                                    <li>If condition is <strong>Unserviceable</strong> &rarr; Asset status becomes <span class="badge bg-danger">Damaged</span>.</li>
+                                    <li>If asset has an <strong>active ongoing faculty assignment</strong> &rarr; Accountability is preserved, status restores to <span class="badge bg-primary">Assigned</span>.</li>
+                                    <li>Otherwise &rarr; Equipment becomes available for deployment with status <span class="badge bg-success">Available</span>.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle me-1"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.final_condition.id_for_label }}" class="form-label fw-semibold">
+                            Post-Repair Asset Condition <span class="text-danger">*</span>
+                        </label>
+                        {{ form.final_condition }}
+                        <div class="form-text text-muted">
+                            New, Good, Fair, Poor, or Unserviceable.
+                        </div>
+                        {% if form.final_condition.errors %}
+                            <div class="text-danger small mt-1">{{ form.final_condition.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.action_taken.id_for_label }}" class="form-label fw-semibold">
+                            Corrective Action Taken <span class="text-danger">*</span>
+                        </label>
+                        {{ form.action_taken }}
+                        <div class="form-text text-muted">
+                            Describe the technical work performed to resolve the issue (e.g., thermal paste replaced, board soldered, firmware updated).
+                        </div>
+                        {% if form.action_taken.errors %}
+                            <div class="text-danger small mt-1">{{ form.action_taken.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.parts_replaced.id_for_label }}" class="form-label fw-semibold">
+                            Parts or Components Replaced
+                        </label>
+                        {{ form.parts_replaced }}
+                        <div class="form-text text-muted">
+                            List individual parts (with part numbers if available) swapped out during repair.
+                        </div>
+                        {% if form.parts_replaced.errors %}
+                            <div class="text-danger small mt-1">{{ form.parts_replaced.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="{{ form.repair_cost.id_for_label }}" class="form-label fw-semibold">
+                                Total Repair Cost (&#8369;)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">&#8369;</span>
+                                {{ form.repair_cost }}
+                            </div>
+                            <div class="form-text text-muted">Enter 0.00 if serviced under warranty or in-house. Must be &ge; 0.</div>
+                            {% if form.repair_cost.errors %}
+                                <div class="text-danger small mt-1">{{ form.repair_cost.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label for="{{ form.repair_completed_at.id_for_label }}" class="form-label fw-semibold">
+                                Date / Time Completed
+                            </label>
+                            {{ form.repair_completed_at }}
+                            <div class="form-text text-muted">Defaults to current time if left blank.</div>
+                            {% if form.repair_completed_at.errors %}
+                                <div class="text-danger small mt-1">{{ form.repair_completed_at.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-semibold">
+                            Reintegration Remarks (Optional)
+                        </label>
+                        {{ form.remarks }}
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{% url 'maintenance:maintenance_detail' case.pk %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Finalize &amp; Return Asset to Service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

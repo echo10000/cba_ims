@@ -1,0 +1,167 @@
+<a href="{% url 'dashboard' %}" class="sidebar-brand d-none d-lg-block">
+    <i class="bi bi-box-fill"></i> CBA IMS
+</a>
+
+<div class="sidebar-nav">
+    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+
+    <div class="nav-section">INVENTORY</div>
+    <a href="{% url 'inventory:asset_scan' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'asset_scan' %}active{% endif %}">
+        <i class="bi bi-camera"></i> Scan Asset
+    </a>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'inventory:asset_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name in 'asset_list,asset_detail,asset_create,asset_edit' %}active{% endif %}">
+        <i class="bi bi-box-seam"></i> All Assets
+    </a>
+    <a href="{% url 'inventory:physical_verification_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'physical_verification_list' %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i> Physical Verification
+    </a>
+    {% if request.user.is_admin %}
+    <a href="{% url 'inventory:qr_labels_bulk' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'qr_labels_bulk' %}active{% endif %}">
+        <i class="bi bi-qr-code"></i> Bulk QR Labels
+    </a>
+    {% endif %}
+    <a href="{% url 'inventory:category_list' %}" class="nav-link {% if request.resolver_match and 'category' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-tags"></i> Categories
+    </a>
+    <a href="{% url 'inventory:brand_list' %}" class="nav-link {% if request.resolver_match and 'brand' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-bookmark"></i> Brands
+    </a>
+    {% endif %}
+
+    {% if request.user.role != 'FACULTY' %}
+
+    <div class="nav-section">SUPPLIES</div>
+    <a href="{% url 'supplies:supply_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'supplies' and request.resolver_match.url_name in 'supply_list,supply_detail,supply_create,supply_edit' %}active{% endif %}">
+        <i class="bi bi-archive"></i> Supply List
+    </a>
+    {% if request.user.is_admin %}
+    <a href="{% url 'supplies:stock_in' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'supplies' and 'stock_in' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-box-arrow-in-down"></i> Stock In
+    </a>
+    <a href="{% url 'supplies:stock_out' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'supplies' and 'stock_out' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-box-arrow-up"></i> Stock Out
+    </a>
+    {% endif %}
+    <a href="{% url 'supplies:transaction_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'supplies' and request.resolver_match.url_name == 'transaction_list' %}active{% endif %}">
+        <i class="bi bi-receipt"></i> Transactions
+    </a>
+    <a href="{% url 'supplies:low_stock_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'supplies' and request.resolver_match.url_name == 'low_stock_list' %}active{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i> Low Stock
+    </a>
+    {% endif %}
+
+    <div class="nav-section">ASSIGNMENTS</div>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'assignments:current_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'current_list' %}active{% endif %}">
+        <i class="bi bi-person-check"></i> Current
+    </a>
+    {% if request.user.is_admin %}
+    <a href="{% url 'assignments:assign_create' %}" class="nav-link {% if request.resolver_match and 'assign' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-link"></i> Assign Asset
+    </a>
+    {% endif %}
+    <a href="{% url 'assignments:history_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'history_list' %}active{% endif %}">
+        <i class="bi bi-arrow-return-left"></i> History / Returns
+    </a>
+    {% endif %}
+    {% if request.user.employee_profile or request.user.role == 'FACULTY' %}
+    <a href="{% url 'assignments:my_accountability' %}" class="nav-link {% if request.resolver_match and 'accountability' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-shield-check"></i> My Accountability
+    </a>
+    {% endif %}
+
+    {% if request.user.role != 'FACULTY' %}
+    <div class="nav-section">TRANSFERS</div>
+    <a href="{% url 'transfers:pending_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'transfers' and request.resolver_match.url_name == 'pending_list' %}active{% endif %}">
+        <i class="bi bi-arrow-left-right"></i> Pending Transfers
+    </a>
+    <a href="{% url 'transfers:history_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'transfers' and request.resolver_match.url_name == 'history_list' %}active{% endif %}">
+        <i class="bi bi-clock-history"></i> Transfer History
+    </a>
+    {% endif %}
+
+    <div class="nav-section">BORROWING</div>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'borrowing:request_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'borrowing' and request.resolver_match.url_name in 'request_list,request_list_alt,borrowing_detail,borrowing_approve,borrowing_reject,borrowing_cancel' %}active{% endif %}">
+        <i class="bi bi-hand-index"></i> Requests
+    </a>
+    <a href="{% url 'borrowing:active_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'borrowing' and request.resolver_match.url_name in 'active_list,borrowing_release,borrowing_return' %}active{% endif %}">
+        <i class="bi bi-clock-history"></i> Active Loans
+    </a>
+    <a href="{% url 'borrowing:history_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'borrowing' and request.resolver_match.url_name == 'history_list' %}active{% endif %}">
+        <i class="bi bi-archive"></i> Loan History
+    </a>
+    {% endif %}
+    {% if request.user.employee_profile or request.user.role == 'FACULTY' %}
+    <a href="{% url 'borrowing:my_borrowings' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'borrowing' and request.resolver_match.url_name == 'my_borrowings' %}active{% endif %}">
+        <i class="bi bi-person-workspace"></i> My Borrowings
+    </a>
+    <a href="{% url 'borrowing:request_create' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'borrowing' and request.resolver_match.url_name in 'request_create,request_create_specific' %}active{% endif %}">
+        <i class="bi bi-plus-circle"></i> Request Loan
+    </a>
+    {% endif %}
+
+    <div class="nav-section">MAINTENANCE</div>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'maintenance:case_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'maintenance' and request.resolver_match.url_name in 'case_list,maintenance_detail,maintenance_assess,maintenance_start_repair,maintenance_complete,maintenance_for_replacement,maintenance_cancel' %}active{% endif %}">
+        <i class="bi bi-tools"></i> Active Queue
+    </a>
+    <a href="{% url 'maintenance:history_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'maintenance' and request.resolver_match.url_name == 'history_list' %}active{% endif %}">
+        <i class="bi bi-wrench"></i> Repair History
+    </a>
+    {% endif %}
+    {% if request.user.role == 'FACULTY' or request.user.employee_profile %}
+    <a href="{% url 'maintenance:my_reports' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'maintenance' and request.resolver_match.url_name == 'my_reports' %}active{% endif %}">
+        <i class="bi bi-person-lines-fill"></i> My Reports
+    </a>
+    {% endif %}
+    <a href="{% url 'maintenance:report_create' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'maintenance' and request.resolver_match.url_name in 'report_create,report_create_specific' %}active{% endif %}">
+        <i class="bi bi-exclamation-octagon"></i> Report Defect
+    </a>
+
+    {% if request.user.role != 'FACULTY' %}
+    <div class="nav-section">DISPOSALS</div>
+    <a href="{% url 'disposals:pending_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'disposals' and request.resolver_match.url_name in 'pending_list,disposal_detail,disposal_approve,disposal_reject,disposal_cancel,disposal_complete' %}active{% endif %}">
+        <i class="bi bi-hourglass-split"></i> Pending Queue
+    </a>
+    <a href="{% url 'disposals:history_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'disposals' and request.resolver_match.url_name == 'history_list' %}active{% endif %}">
+        <i class="bi bi-archive"></i> Disposal History
+    </a>
+    {% if request.user.is_admin %}
+    <a href="{% url 'disposals:request_create' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'disposals' and 'request_create' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-trash3"></i> Request Disposal
+    </a>
+    {% endif %}
+    {% endif %}
+
+    <div class="nav-section">ORGANIZATION</div>
+    <a href="{% url 'organizations:employee_list' %}" class="nav-link {% if request.resolver_match and 'employee' in request.resolver_match.url_name and 'accountability' not in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-people"></i> Employees
+    </a>
+    <a href="{% url 'organizations:department_list' %}" class="nav-link {% if request.resolver_match and 'department' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-building"></i> Departments
+    </a>
+    <a href="{% url 'organizations:location_list' %}" class="nav-link {% if request.resolver_match and 'location' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-geo-alt"></i> Locations
+    </a>
+
+    {% if request.user.role != 'FACULTY' %}
+    <div class="nav-section">REPORTS</div>
+    <a href="{% url 'reports:reports_dashboard' %}" class="nav-link {% if request.resolver_match and request.resolver_match.app_name == 'reports' %}active{% endif %}">
+        <i class="bi bi-file-earmark-bar-graph"></i> Reports & Analytics
+    </a>
+    {% endif %}
+
+    {% if request.user.is_authenticated and request.user.is_admin %}
+    <div class="nav-section">SYSTEM</div>
+    <a href="{% url 'accounts:user_list' %}" class="nav-link {% if request.resolver_match and 'user' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-person-gear"></i> Users
+    </a>
+    <a href="{% url 'audit:audit_log_list' %}" class="nav-link {% if request.resolver_match and 'audit' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-journal-text"></i> Audit Logs
+    </a>
+    {% endif %}
+</div>

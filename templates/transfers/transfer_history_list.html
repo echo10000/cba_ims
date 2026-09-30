@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Asset Transfer History - CBA IMS{% endblock %}
+{% block page_title %}Asset Transfer History{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h4 class="mb-1 fw-bold">Asset Transfer &amp; Movement History</h4>
+        <p class="text-muted mb-0 small">Permanent audit archive of completed physical movements, reallocations, and historical relocations.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'transfers:pending_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i> Pending Transfers
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="get" class="search-filter-bar d-flex flex-wrap align-items-center">
+            <!-- Search Query -->
+            <div class="input-group search-input flex-grow-1" style="min-width: 220px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" class="form-control border-start-0" placeholder="Search asset code, item, reason, or department..." value="{{ request.GET.q }}">
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="d-flex flex-wrap gap-2 filter-controls mt-2 mt-md-0">
+                <!-- Department Filter -->
+                <select name="department" class="form-select form-select-sm" style="width: auto; min-width: 150px;">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.pk }}" {% if request.GET.department == dept.pk|stringformat:"i" %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Status Filter -->
+                <select name="status" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                    <option value="">All Final Statuses</option>
+                    {% for st_val, st_lbl in statuses %}
+                        <option value="{{ st_val }}" {% if request.GET.status == st_val %}selected{% endif %}>
+                            {{ st_lbl }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                {% if request.GET.q or request.GET.department or request.GET.status %}
+                    <a href="{% url 'transfers:history_list' %}" class="btn btn-sm btn-outline-danger" title="Clear filters">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History Records -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-clock-history text-secondary me-2"></i>Movement Archive
+            <span class="badge bg-secondary ms-1">{{ page_obj.paginator.count }}</span>
+        </h6>
+    </div>
+
+    {% if transfers %}
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset</th>
+                        <th>Origin Snapshot</th>
+                        <th></th>
+                        <th>Destination</th>
+                        <th>Execution / Date</th>
+                        <th>Handled By</th>
+                        <th>Status</th>
+                        <th class="text-end">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transfers %}
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="{% url 'inventory:asset_detail' t.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                                    {{ t.asset.asset_code }}
+                                </a>
+                                <span class="badge bg-light text-dark border ms-1">{{ t.asset.category.code }}</span>
+                            </div>
+                            <small class="text-dark fw-semibold">{{ t.asset.item_name }}</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">
+                                <i class="bi bi-geo-alt text-muted me-1"></i>{{ t.from_location.name|default:"Unspecified" }}
+                            </div>
+                            <small class="text-muted">{{ t.from_department.code }}</small>
+                        </td>
+                        <td class="text-center text-muted px-1">
+                            <i class="bi bi-arrow-right"></i>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">
+                                <i class="bi bi-geo-alt-fill text-success me-1"></i>{{ t.to_location.name|default:"Unspecified" }}
+                            </div>
+                            <small class="text-muted">{{ t.to_department.code }}</small>
+                        </td>
+                        <td>
+                            <div class="small">
+                                {% if t.completed_at %}
+                                    <span class="text-success fw-semibold"><i class="bi bi-calendar-check me-1"></i>{{ t.completed_at|date:"M d, Y" }}</span>
+                                {% else %}
+                                    <span>{{ t.transfer_date|date:"M d, Y" }}</span>
+                                {% endif %}
+                                <br><small class="text-muted text-truncate d-inline-block" style="max-width: 180px;" title="{{ t.reason }}">{{ t.reason }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small text-muted">
+                                <div>Req: {{ t.requested_by.username|default:"System" }}</div>
+                                {% if t.processed_by %}
+                                <div>Exec: {{ t.processed_by.username }}</div>
+                                {% elif t.approved_by %}
+                                <div>Appr: {{ t.approved_by.username }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if t.status == 'COMPLETED' %}
+                                <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i>Completed</span>
+                            {% elif t.status == 'REJECTED' %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                            {% elif t.status == 'CANCELLED' %}
+                                <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">{{ t.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'transfers:transfer_detail' t.pk %}" class="btn btn-sm btn-outline-secondary" title="View Transfer Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card List View -->
+    <div class="mobile-card-list p-3">
+        {% for t in transfers %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <a href="{% url 'inventory:asset_detail' t.asset.asset_code %}" class="font-monospace fw-bold text-decoration-none">
+                        {{ t.asset.asset_code }}
+                    </a>
+                    <h6 class="mb-0 fw-bold mt-1">{{ t.asset.item_name }}</h6>
+                </div>
+                {% if t.status == 'COMPLETED' %}
+                    <span class="badge bg-success">Completed</span>
+                {% elif t.status == 'REJECTED' %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% elif t.status == 'CANCELLED' %}
+                    <span class="badge bg-secondary">Cancelled</span>
+                {% endif %}
+            </div>
+
+            <div class="bg-light p-2 rounded border mb-2 small">
+                <div><strong>From:</strong> {{ t.from_department.code }} &bull; {{ t.from_location.name|default:"-" }}</div>
+                <div><strong>To:</strong> {{ t.to_department.code }} &bull; {{ t.to_location.name|default:"-" }}</div>
+            </div>
+
+            <div class="card-meta">
+                <div><i class="bi bi-card-text text-muted me-1"></i> Reason: {{ t.reason }}</div>
+                <div>
+                    <i class="bi bi-calendar text-muted me-1"></i>
+                    {% if t.completed_at %}
+                        Completed: {{ t.completed_at|date:"M d, Y" }}
+                    {% else %}
+                        Date: {{ t.transfer_date|date:"M d, Y" }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <a href="{% url 'transfers:transfer_detail' t.pk %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-eye me-1"></i> View Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white py-3">
+        {% include 'includes/pagination.html' %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-clock-history text-muted fs-1 mb-2"></i>
+        <h5 class="fw-bold">No Transfer History Records</h5>
+        <p class="text-muted small mb-0">
+            {% if request.GET.q or request.GET.department or request.GET.status %}
+                No historical movement records match your search criteria.
+            {% else %}
+                Completed, rejected, or cancelled transfer records will appear in this permanent history log.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

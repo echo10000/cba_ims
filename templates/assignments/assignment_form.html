@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Asset - CBA IMS{% endblock %}
+{% block page_title %}Assign Asset{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'assignments:current_list' %}" class="text-decoration-none">Assignments</a></li>
+        {% if preselected_asset %}
+            <li class="breadcrumb-item"><a href="{% url 'inventory:asset_detail' preselected_asset.asset_code %}" class="text-decoration-none">{{ preselected_asset.asset_code }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">Assign Asset</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <!-- Preselected Asset Summary Banner (if applicable) -->
+        {% if preselected_asset %}
+        <div class="card mb-4 border-primary shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2"></i>Selected Asset for Assignment</h6>
+                    <span class="badge bg-white text-primary font-monospace">{{ preselected_asset.asset_code }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Item Name:</div>
+                        <div class="fw-bold">{{ preselected_asset.item_name }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Category & Brand:</div>
+                        <div>{{ preselected_asset.category.name }} &bull; {{ preselected_asset.brand.name|default:"Unspecified" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Serial / Property #:</div>
+                        <div class="font-monospace small">SN: {{ preselected_asset.serial_number|default:"None" }} &bull; PN: {{ preselected_asset.property_number|default:"None" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Current Condition:</div>
+                        <div>
+                            {% if preselected_asset.condition == 'NEW' %}<span class="badge bg-primary">New</span>
+                            {% elif preselected_asset.condition == 'GOOD' %}<span class="badge bg-success">Good</span>
+                            {% elif preselected_asset.condition == 'FAIR' %}<span class="badge bg-info text-dark">Fair</span>
+                            {% elif preselected_asset.condition == 'POOR' %}<span class="badge bg-warning text-dark">Poor</span>
+                            {% else %}<span class="badge bg-danger">Unserviceable</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Assignment Form Card -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-link-45deg text-primary me-2"></i>Asset Assignment / Custody Turnover
+                </h5>
+                <small class="text-muted">Transfer accountability of this durable equipment to a faculty member or staff.</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Asset Selector (Hidden or disabled if preselected) -->
+                    <div class="mb-3">
+                        <label for="{{ form.asset.id_for_label }}" class="form-label fw-bold">
+                            Asset <span class="text-danger">*</span>
+                        </label>
+                        {{ form.asset }}
+                        {% if form.asset.help_text %}
+                            <div class="form-text">{{ form.asset.help_text }}</div>
+                        {% endif %}
+                        {% if form.asset.errors %}
+                            <div class="text-danger small mt-1">{{ form.asset.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Employee Selector -->
+                    <div class="mb-3">
+                        <label for="{{ form.employee.id_for_label }}" class="form-label fw-bold">
+                            Accountable Faculty Member / Staff <span class="text-danger">*</span>
+                        </label>
+                        {{ form.employee }}
+                        {% if form.employee.help_text %}
+                            <div class="form-text">{{ form.employee.help_text }}</div>
+                        {% endif %}
+                        {% if form.employee.errors %}
+                            <div class="text-danger small mt-1">{{ form.employee.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Dates Row -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.assigned_date.id_for_label }}" class="form-label fw-bold">
+                                Effective Date of Assignment <span class="text-danger">*</span>
+                            </label>
+                            {{ form.assigned_date }}
+                            {% if form.assigned_date.errors %}
+                                <div class="text-danger small mt-1">{{ form.assigned_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.expected_return_date.id_for_label }}" class="form-label fw-bold">
+                                Expected Return Date <span class="text-muted fw-normal">(Optional)</span>
+                            </label>
+                            {{ form.expected_return_date }}
+                            <div class="form-text">Leave blank if assignment is indefinite/permanent.</div>
+                            {% if form.expected_return_date.errors %}
+                                <div class="text-danger small mt-1">{{ form.expected_return_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Purpose -->
+                    <div class="mb-3">
+                        <label for="{{ form.purpose.id_for_label }}" class="form-label fw-bold">
+                            Official Purpose
+                        </label>
+                        {{ form.purpose }}
+                        <div class="form-text">Specify institutional use (e.g. Faculty Classroom Instruction, Dean's Office Desk, Lab Research).</div>
+                        {% if form.purpose.errors %}
+                            <div class="text-danger small mt-1">{{ form.purpose.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Remarks & Turnover Notes -->
+                    <div class="mb-4">
+                        <label for="{{ form.remarks.id_for_label }}" class="form-label fw-bold">
+                            Remarks & Accessories Included
+                        </label>
+                        {{ form.remarks }}
+                        <div class="form-text">Record included accessories (power adapter, carrying case, cables) and physical condition verification.</div>
+                        {% if form.remarks.errors %}
+                            <div class="text-danger small mt-1">{{ form.remarks.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Notice Card -->
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center mb-4">
+                        <i class="bi bi-info-circle-fill fs-5 me-2 flex-shrink-0"></i>
+                        <div>
+                            Upon confirmation, this asset's status will transition to <strong>ASSIGNED</strong> and accountability will be formally attached to the selected employee.
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions d-flex justify-content-end gap-2">
+                        {% if preselected_asset %}
+                            <a href="{% url 'inventory:asset_detail' preselected_asset.asset_code %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% else %}
+                            <a href="{% url 'assignments:current_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-1"></i> Confirm & Assign Asset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

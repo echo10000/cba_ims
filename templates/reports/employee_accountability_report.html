@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - CBA IMS{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'reports:reports_dashboard' %}">Reports</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'reports:accountability_active' %}">Accountability</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ employee.full_name }}</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold"><i class="bi bi-person-vcard text-primary me-2"></i>Employee Accountability Dossier</h4>
+        <small class="text-muted">Individual asset custody portfolio and historical return record</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:accountability_active' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> All Accountability
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Dossier
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="?export=xlsx"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Workbook (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="?export=csv"><i class="bi bi-file-earmark-text text-primary me-2"></i>CSV Spreadsheet (.csv)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="?print=1" target="_blank"><i class="bi bi-printer text-dark me-2"></i>Printable View / PDF</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Header Card -->
+<div class="card mb-4 border-0 shadow-sm bg-light">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fs-3 fw-bold" style="width: 60px; height: 60px;">
+                        {{ employee.first_name|first }}{{ employee.last_name|first }}
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">{{ employee.full_name }}</h4>
+                        <div class="text-muted small">
+                            <span class="badge bg-secondary me-2">{{ employee.employee_id }}</span>
+                            <i class="bi bi-building me-1"></i>{{ employee.department.name|default:"No Department" }} &bull;
+                            <i class="bi bi-briefcase me-1 ms-2"></i>{{ employee.position|default:"Staff" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="d-inline-block text-start bg-white p-3 rounded border shadow-sm">
+                    <div class="small text-muted text-uppercase fw-semibold">Current Custody Items</div>
+                    <div class="fs-3 fw-bold text-primary">{{ active_assignments.count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Assignments Section -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-shield-check text-success me-2"></i>Active Custody Items (PAR)</h6>
+        <span class="badge bg-success">{{ active_assignments.count }} Active</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Property #</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Condition</th>
+                    <th scope="col">Assigned Date</th>
+                    <th scope="col">Purpose / Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in active_assignments %}
+                <tr>
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' a.asset.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ a.asset.asset_code }}
+                        </a>
+                    </td>
+                    <td><small class="text-muted">{{ a.asset.property_number|default:"—" }}</small></td>
+                    <td>
+                        <div class="fw-semibold">{{ a.asset.item_name }}</div>
+                        <small class="text-muted">{{ a.asset.brand.name|default:"" }} {{ a.asset.model_number|default:"" }}</small>
+                    </td>
+                    <td><small>{{ a.asset.category.name|default:"—" }}</small></td>
+                    <td><small>{{ a.asset.current_location.name|default:"—" }}</small></td>
+                    <td>
+                        <span class="badge 
+                            {% if a.condition_at_assignment == 'EXCELLENT' or a.condition_at_assignment == 'GOOD' %}bg-success
+                            {% elif a.condition_at_assignment == 'FAIR' %}bg-info text-dark
+                            {% elif a.condition_at_assignment == 'POOR' %}bg-warning text-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ a.get_condition_at_assignment_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ a.assigned_date|date:"Y-m-d" }}</small></td>
+                    <td><small class="text-muted">{{ a.remarks|default:"—" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        No active property assignments currently registered for this employee.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Past Assignment History Section -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-secondary me-2"></i>Past Returned / Transferred Assets</h6>
+        <span class="badge bg-secondary">{{ past_assignments.count }} Returned</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Asset Code</th>
+                    <th scope="col">Property #</th>
+                    <th scope="col">Item Description</th>
+                    <th scope="col">Assigned Date</th>
+                    <th scope="col">Returned Date</th>
+                    <th scope="col">Cond Assigned</th>
+                    <th scope="col">Cond Returned</th>
+                    <th scope="col">Return Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in past_assignments %}
+                <tr>
+                    <td>
+                        <a href="{% url 'inventory:asset_detail' p.asset.pk %}" class="fw-semibold text-decoration-none">
+                            {{ p.asset.asset_code }}
+                        </a>
+                    </td>
+                    <td><small class="text-muted">{{ p.asset.property_number|default:"—" }}</small></td>
+                    <td><div class="fw-medium">{{ p.asset.item_name }}</div></td>
+                    <td><small>{{ p.assigned_date|date:"Y-m-d" }}</small></td>
+                    <td><small>{{ p.returned_date|date:"Y-m-d"|default:"—" }}</small></td>
+                    <td><span class="badge bg-light text-dark border">{{ p.condition_at_assignment }}</span></td>
+                    <td><span class="badge bg-light text-dark border">{{ p.condition_at_return|default:"—" }}</span></td>
+                    <td><small class="text-muted">{{ p.return_remarks|default:"—" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        No historical returns on record.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

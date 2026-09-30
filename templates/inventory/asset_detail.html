@@ -1,0 +1,1130 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ asset.asset_code }} - {{ asset.item_name }} - CBA IMS{% endblock %}
+{% block page_title %}Asset Details{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'inventory:asset_list' %}" class="text-decoration-none">Assets</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ asset.asset_code }}</li>
+    </ol>
+</nav>
+
+<!-- Asset Header Banner -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+            <!-- Asset Photo / Placeholder -->
+            <div class="col-12 col-md-3 col-lg-2 text-center">
+                {% if asset.asset_image %}
+                    <img src="{{ asset.asset_image.url }}" alt="{{ asset.item_name }}" class="img-fluid rounded border shadow-sm" style="max-height: 140px; width: 100%; object-fit: cover;">
+                {% else %}
+                    <div class="rounded bg-light border d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="min-height: 120px;">
+                        <i class="bi bi-camera fs-1 opacity-50 mb-1"></i>
+                        <small class="text-muted">No photo uploaded</small>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Asset Title & Primary Badges -->
+            <div class="col-12 col-md-6 col-lg-7">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="font-monospace fs-5 fw-bold text-primary">{{ asset.asset_code }}</span>
+                    
+                    <!-- Status Badge -->
+                    {% if asset.status == 'AVAILABLE' %}
+                        <span class="badge bg-success px-2 py-1">Available</span>
+                    {% elif asset.status == 'ASSIGNED' %}
+                        <span class="badge bg-warning text-dark px-2 py-1">Assigned</span>
+                    {% elif asset.status == 'BORROWED' %}
+                        <span class="badge bg-info text-dark px-2 py-1">Borrowed</span>
+                    {% elif asset.status == 'MAINTENANCE' %}
+                        <span class="badge text-white px-2 py-1" style="background-color: #fd7e14;">Under Maintenance</span>
+                    {% elif asset.status == 'DAMAGED' %}
+                        <span class="badge bg-danger px-2 py-1">Damaged</span>
+                    {% elif asset.status == 'LOST' %}
+                        <span class="badge bg-dark px-2 py-1">Lost</span>
+                    {% elif asset.status == 'TRANSFERRED' %}
+                        <span class="badge text-white px-2 py-1" style="background-color: #6f42c1;">Transferred</span>
+                    {% elif asset.status == 'DISPOSED' %}
+                        <span class="badge bg-dark text-white px-2 py-1"><i class="bi bi-archive-fill me-1"></i>Disposed</span>
+                    {% else %}
+                        <span class="badge bg-secondary px-2 py-1">{{ asset.status }}</span>
+                    {% endif %}
+
+                    <!-- Condition Badge -->
+                    {% if asset.condition == 'NEW' %}
+                        <span class="badge bg-primary px-2 py-1">Condition: New</span>
+                    {% elif asset.condition == 'GOOD' %}
+                        <span class="badge bg-success px-2 py-1">Condition: Good</span>
+                    {% elif asset.condition == 'FAIR' %}
+                        <span class="badge bg-info text-dark px-2 py-1">Condition: Fair</span>
+                    {% elif asset.condition == 'POOR' %}
+                        <span class="badge bg-warning text-dark px-2 py-1">Condition: Poor</span>
+                    {% else %}
+                        <span class="badge bg-danger px-2 py-1">Condition: Unserviceable</span>
+                    {% endif %}
+                </div>
+
+                <h3 class="fw-bold mb-1">{{ asset.item_name }}</h3>
+                <p class="text-muted mb-0 small">
+                    <i class="bi bi-building me-1"></i> {{ asset.department.name }}
+                    {% if asset.current_location %} &bull; <i class="bi bi-geo-alt me-1"></i> {{ asset.current_location.name }}{% endif %}
+                </p>
+            </div>
+
+            <div class="col-12 col-md-5 col-lg-5 text-md-end">
+                <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                    <a href="{% url 'inventory:asset_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Back
+                    </a>
+                    {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'inventory:asset_qr_label' asset.asset_code %}" class="btn btn-outline-primary btn-sm" target="_blank" title="Print QR Sticker Label">
+                        <i class="bi bi-qr-code me-1"></i> QR Label
+                    </a>
+                    {% endif %}
+                    {% if asset.status == 'DISPOSED' %}
+                        {% if disposal_record and request.user.role != 'FACULTY' %}
+                        <a href="{% url 'disposals:disposal_detail' disposal_record.pk %}" class="btn btn-dark btn-sm">
+                            <i class="bi bi-archive me-1"></i> Disposal Record
+                        </a>
+                        {% endif %}
+                    {% else %}
+                        {% if can_borrow %}
+                        <a href="{% url 'borrowing:request_create_specific' asset.asset_code %}" class="btn btn-outline-info btn-sm" title="Request Equipment Loan">
+                            <i class="bi bi-hand-index me-1"></i> Borrow
+                        </a>
+                        {% endif %}
+                        {% if current_borrowing and request.user.is_admin %}
+                        <a href="{% url 'borrowing:borrowing_return' current_borrowing.pk %}" class="btn btn-warning btn-sm" title="Process Equipment Return">
+                            <i class="bi bi-arrow-return-left me-1"></i> Return Loan
+                        </a>
+                        {% endif %}
+                        {% if request.user.is_admin %}
+                        <a href="{% url 'inventory:asset_verify' asset.asset_code %}" class="btn btn-outline-success btn-sm" title="Conduct Physical Verification Audit">
+                            <i class="bi bi-clipboard-check me-1"></i> Verify
+                        </a>
+                        {% if can_transfer %}
+                        <a href="{% url 'transfers:transfer_request_specific' asset.asset_code %}" class="btn btn-outline-success btn-sm" title="Transfer Asset Location">
+                            <i class="bi bi-arrow-left-right me-1"></i> Transfer
+                        </a>
+                        {% endif %}
+                        {% if current_maintenance %}
+                        <a href="{% url 'maintenance:maintenance_detail' current_maintenance.pk %}" class="btn btn-warning btn-sm" title="View Active Maintenance Case">
+                            <i class="bi bi-tools me-1"></i> Maintenance
+                        </a>
+                        {% else %}
+                        <a href="{% url 'maintenance:report_create_specific' asset.asset_code %}" class="btn btn-outline-danger btn-sm" title="Report Defect or Damage">
+                            <i class="bi bi-exclamation-octagon me-1"></i> Report Defect
+                        </a>
+                        {% endif %}
+                        {% if can_dispose %}
+                        <a href="{% url 'disposals:request_create_specific' asset.asset_code %}" class="btn btn-outline-danger btn-sm" title="Initiate Asset Disposal">
+                            <i class="bi bi-trash3 me-1"></i> Dispose
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'inventory:asset_edit' asset.asset_code %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i> Edit
+                        </a>
+                        <a href="{% url 'inventory:asset_delete' asset.asset_code %}" class="btn btn-outline-danger btn-sm" title="Delete Asset">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if asset.status == 'DISPOSED' or disposal_record and disposal_record.status == 'COMPLETED' %}
+<div class="alert alert-dark d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm border-start border-4 border-dark" role="alert">
+    <div>
+        <i class="bi bi-archive-fill fs-3 me-2 align-middle text-secondary"></i>
+        <strong>PERMANENTLY DISPOSED ASSET:</strong>
+        This asset was formally retired from active inventory on <strong>{{ disposal_record.disposal_date|date:"F j, Y"|default:disposal_record.completed_at|date:"F j, Y" }}</strong> via <strong>{{ disposal_record.get_disposal_method_display|default:"Official Disposal" }}</strong>.
+        <div class="small mt-1 text-muted">
+            Disposal Tracking ID: <strong>{{ disposal_record.disposal_number }}</strong>
+            {% if disposal_record.reference_number %} &bull; Ref: {{ disposal_record.reference_number }}{% endif %}
+            {% if disposal_record.recipient_or_destination %} &bull; Destination/Recipient: {{ disposal_record.recipient_or_destination }}{% endif %}
+            {% if disposal_record.processed_by %} &bull; Processed By: {{ disposal_record.processed_by.get_full_name|default:disposal_record.processed_by.username }}{% endif %}
+        </div>
+    </div>
+    {% if request.user.role != 'FACULTY' and disposal_record %}
+    <a href="{% url 'disposals:disposal_detail' disposal_record.pk %}" class="btn btn-sm btn-outline-dark bg-white">View Disposal Record</a>
+    {% endif %}
+</div>
+{% elif disposal_record and disposal_record.status in 'PENDING,APPROVED' %}
+<div class="alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm border-start border-4 border-danger" role="alert">
+    <div>
+        <i class="bi bi-hourglass-split fs-4 me-2 align-middle text-danger"></i>
+        <strong>Active Disposal Request in Progress:</strong>
+        This asset has an open disposal request: <strong>{{ disposal_record.disposal_number }}</strong> (Status: <strong>{{ disposal_record.get_status_display }}</strong>).
+        <div class="small mt-1 text-muted">Reason: {{ disposal_record.reason }}</div>
+    </div>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'disposals:disposal_detail' disposal_record.pk %}" class="btn btn-sm btn-danger">View Disposal Request</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if open_transfer %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm" role="alert">
+    <div>
+        <i class="bi bi-arrow-left-right fs-4 me-2 align-middle text-warning"></i>
+        <strong>Active Transfer in Progress:</strong>
+        This asset has an open transfer to <strong>{{ open_transfer.to_department.name }}</strong> ({{ open_transfer.to_location.name|default:"Unspecified Location" }}). Status: <strong>{{ open_transfer.get_status_display }}</strong>.
+    </div>
+    {% if request.user.role != 'FACULTY' %}
+    <a href="{% url 'transfers:transfer_detail' open_transfer.pk %}" class="btn btn-sm btn-warning">View Transfer #{{ open_transfer.pk }}</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if current_maintenance %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm" role="alert">
+    <div>
+        <i class="bi bi-tools fs-4 me-2 align-middle text-warning"></i>
+        <strong>Active Maintenance Case:</strong>
+        This asset currently has an open maintenance case: <strong>{{ current_maintenance.case_number }}</strong> (Status: <strong>{{ current_maintenance.get_status_display }}</strong> &bull; Severity: <strong>{{ current_maintenance.get_severity_display }}</strong>).
+        <div class="small mt-1 text-muted">{{ current_maintenance.issue_title }}</div>
+    </div>
+    <a href="{% url 'maintenance:maintenance_detail' current_maintenance.pk %}" class="btn btn-sm btn-warning">View Case #{{ current_maintenance.case_number }}</a>
+</div>
+{% endif %}
+
+<!-- Detailed Specifications Grid -->
+<div class="row g-3 mb-4">
+    <!-- 1. Identification -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-upc-scan text-primary me-2"></i>Identification</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">System Code:</th>
+                        <td><span class="font-monospace fw-bold">{{ asset.asset_code }}</span></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Property #:</th>
+                        <td>
+                            {% if asset.property_number %}
+                                <span class="badge bg-light text-dark font-monospace border">{{ asset.property_number }}</span>
+                            {% else %}
+                                <span class="text-muted small">None recorded</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Serial #:</th>
+                        <td>
+                            {% if asset.serial_number %}
+                                <span class="font-monospace">{{ asset.serial_number }}</span>
+                            {% else %}
+                                <span class="text-muted small">None recorded</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Internal UUID:</th>
+                        <td><small class="font-monospace text-muted" style="font-size: 0.75rem;">{{ asset.uuid }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Product Specifications -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-cpu text-primary me-2"></i>Product Specifications</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Category:</th>
+                        <td><strong>{{ asset.category.name }}</strong> <small class="text-muted">({{ asset.category.code }})</small></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Brand:</th>
+                        <td>{{ asset.brand.name|default:"Unspecified" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Model:</th>
+                        <td>{{ asset.model|default:"Unspecified" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Description:</th>
+                        <td><small>{{ asset.description|default:"No description provided."|linebreaksbr }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Location & Department -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-geo-alt text-primary me-2"></i>Location & Custody</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Department:</th>
+                        <td><strong>{{ asset.department.name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Current Location:</th>
+                        <td>
+                            {% if asset.current_location %}
+                                {{ asset.current_location.name }}
+                                {% if asset.current_location.building %}
+                                    <br><small class="text-muted">{{ asset.current_location.building }}{% if asset.current_location.room_number %}, Rm {{ asset.current_location.room_number }}{% endif %}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">Not designated</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Current Custody:</th>
+                        <td>
+                            {% if asset.status == 'AVAILABLE' %}
+                                <span class="text-muted small">In department storage / available</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">{{ asset.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Acquisition & Financial -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-cash-coin text-primary me-2"></i>Acquisition & Financial</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Acquisition Date:</th>
+                        <td>{{ asset.acquisition_date|default:"Unknown" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Acquisition Cost:</th>
+                        <td>
+                            {% if asset.acquisition_cost is not None %}
+                                <strong class="text-success">PHP {{ asset.acquisition_cost|floatformat:2 }}</strong>
+                            {% else %}
+                                <span class="text-muted small">Not recorded</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Supplier / Vendor:</th>
+                        <td>{{ asset.supplier|default:"Unspecified" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Operational Remarks -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-chat-left-text text-primary me-2"></i>Remarks & Notes</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-0">
+                    {{ asset.remarks|default:"No remarks recorded for this asset."|linebreaksbr }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. System & Audit Information -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-primary me-2"></i>System Record</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Registered By:</th>
+                        <td>{% if asset.created_by %}{{ asset.created_by.get_full_name|default:asset.created_by.username }}{% else %}System{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Created:</th>
+                        <td><small>{{ asset.created_at|date:"Y-m-d H:i" }}</small></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Last Updated:</th>
+                        <td><small>{{ asset.updated_at|date:"Y-m-d H:i" }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Reserved Sections for Future Phases -->
+<div class="row g-3">
+    <!-- Current Assignment (Phase 3) -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-person-check text-primary me-2"></i>Current Assignment & Accountability</h6>
+                {% if current_assignment %}
+                    <span class="badge bg-warning text-dark">Active Custody</span>
+                {% elif asset.status == 'AVAILABLE' %}
+                    <span class="badge bg-success">Available</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ asset.get_status_display }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if current_assignment %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-light p-3 me-3 text-primary">
+                            <i class="bi bi-person-badge fs-3"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold fs-6">
+                                {% if request.user.role != 'FACULTY' %}
+                                <a href="{% url 'organizations:employee_detail' current_assignment.employee.pk %}" class="text-decoration-none">
+                                    {{ current_assignment.employee.full_name }}
+                                </a>
+                                {% else %}
+                                    {{ current_assignment.employee.full_name }}
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-building me-1"></i>{{ current_assignment.employee.department.name|default:"College of Business Administration" }}
+                                {% if current_assignment.employee.position %}&bull; {{ current_assignment.employee.position }}{% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <table class="table table-sm table-borderless mb-3">
+                        <tr>
+                            <th class="text-muted" style="width: 40%;">Assigned Date:</th>
+                            <td>{{ current_assignment.assigned_date|date:"F d, Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Expected Return:</th>
+                            <td>
+                                {% if current_assignment.expected_return_date %}
+                                    {{ current_assignment.expected_return_date|date:"F d, Y" }}
+                                {% else %}
+                                    <span class="text-muted small">Indefinite / Permanent</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Issued Condition:</th>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ current_assignment.get_condition_at_assignment_display }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Purpose:</th>
+                            <td><small>{{ current_assignment.purpose|default:"General Institutional Use" }}</small></td>
+                        </tr>
+                        {% if current_assignment.remarks %}
+                        <tr>
+                            <th class="text-muted">Turnover Notes:</th>
+                            <td><small class="text-muted">{{ current_assignment.remarks|linebreaksbr }}</small></td>
+                        </tr>
+                        {% endif %}
+                    </table>
+
+                    {% if request.user.is_admin %}
+                    <div class="pt-2 border-top d-flex justify-content-end">
+                        <a href="{% url 'assignments:asset_return' current_assignment.pk %}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-arrow-return-left me-1"></i> Process Equipment Return
+                        </a>
+                    </div>
+                    {% endif %}
+
+                {% elif asset.status == 'AVAILABLE' %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check2-circle text-success fs-2 mb-2 d-block"></i>
+                        <h6 class="fw-bold mb-1">Equipment Available</h6>
+                        <p class="small text-muted mb-3">This asset is in storage and ready to be assigned to faculty or staff.</p>
+                        {% if request.user.is_admin %}
+                        <a href="{% url 'assignments:assign_asset_specific' asset.asset_code %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-link me-1"></i> Assign to Personnel
+                        </a>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-lock fs-2 opacity-50 mb-2 d-block"></i>
+                        <h6 class="fw-bold mb-1">Not Available for Assignment</h6>
+                        <p class="small mb-0">Equipment is currently marked as <strong>{{ asset.get_status_display }}</strong> and cannot be assigned.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer History (Phase 4) -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right text-primary me-2"></i>Location &amp; Dept Movement History</h6>
+                {% if movement_history %}
+                    <span class="badge bg-primary">{{ movement_history|length }} completed transfer(s)</span>
+                {% else %}
+                    <span class="badge bg-light text-dark border">Original Location</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if movement_history %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Movement Route</th>
+                                    <th>Reason / By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in movement_history %}
+                                <tr>
+                                    <td>
+                                        <small class="fw-semibold text-nowrap">
+                                            {{ m.completed_at|date:"M d, Y"|default:m.transfer_date|date:"M d, Y" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <span class="text-danger fw-semibold">{{ m.from_department.code }}</span> &bull; {{ m.from_location.name|default:"-" }}
+                                            <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                            <span class="text-success fw-semibold">{{ m.to_department.code }}</span> &bull; {{ m.to_location.name|default:"-" }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted text-truncate d-block" style="max-width: 140px;" title="{{ m.reason }}">
+                                            {{ m.reason }}
+                                        </small>
+                                        <small class="text-muted" style="font-size: 0.75rem;">By: {{ m.processed_by.username|default:"System" }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-geo-alt fs-2 opacity-50 d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">No Movement History</h6>
+                        <p class="small mb-2">This asset remains at its registered department and designated location.</p>
+                        {% if request.user.is_admin and can_transfer %}
+                        <a href="{% url 'transfers:transfer_request_specific' asset.asset_code %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-arrow-left-right me-1"></i> Request Relocation
+                        </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Physical Inventory Verification & QR Tracking (Phase 6) -->
+<div class="row g-3 mb-4">
+    <!-- QR Label Quick Card -->
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-qr-code text-primary me-2"></i>QR Code Tag</h6>
+                <span class="badge bg-light text-dark border">Encrypted URL</span>
+            </div>
+            <div class="card-body text-center p-3">
+                {% if qr_data_uri %}
+                <div class="p-2 border rounded d-inline-block bg-white shadow-sm mb-3">
+                    <img src="{{ qr_data_uri }}" alt="QR Code {{ asset.asset_code }}" class="img-fluid" style="width: 140px; height: 140px;">
+                </div>
+                {% endif %}
+                <div class="font-monospace fw-bold small text-dark mb-1">{{ asset.asset_code }}</div>
+                <p class="text-muted small mb-3">Point mobile camera or CBA Scanner to verify equipment identity.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    {% if request.user.role != 'FACULTY' %}
+                    <a href="{% url 'inventory:asset_qr_label' asset.asset_code %}" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="bi bi-printer me-1"></i> Print Label
+                    </a>
+                    {% endif %}
+                    {% if request.user.is_admin %}
+                    <a href="{% url 'inventory:asset_verify' asset.asset_code %}" class="btn btn-success btn-sm">
+                        <i class="bi bi-clipboard-check me-1"></i> Verify Now
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Physical Verification Log -->
+    <div class="col-lg-8 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clipboard-check text-primary me-2"></i>Physical Inventory Verification Log</h6>
+                {% if latest_verification %}
+                    {% if latest_verification.result == 'VERIFIED' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Verified</span>
+                    {% elif latest_verification.result == 'LOCATION_MISMATCH' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-geo me-1"></i>Location Mismatch</span>
+                    {% elif latest_verification.result == 'CONDITION_MISMATCH' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-tools me-1"></i>Condition Mismatch</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Loc &amp; Cond Mismatch</span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge bg-secondary">Unverified</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if verification_history %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Audit Date</th>
+                                <th>Result</th>
+                                <th>Expected vs Observed</th>
+                                <th>Auditor</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in verification_history %}
+                            <tr>
+                                <td class="ps-3 text-nowrap">
+                                    <div class="fw-semibold small">{{ v.verified_at|date:"M d, Y" }}</div>
+                                    <div class="text-muted small" style="font-size: 0.75rem;">{{ v.verified_at|time:"H:i" }}</div>
+                                </td>
+                                <td>
+                                    {% if v.result == 'VERIFIED' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Verified</span>
+                                    {% elif v.result == 'LOCATION_MISMATCH' %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Location Mismatch</span>
+                                    {% elif v.result == 'CONDITION_MISMATCH' %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Condition Mismatch</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Loc &amp; Cond Mismatch</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        {% if v.expected_department != v.observed_department or v.expected_location != v.observed_location %}
+                                            <div class="text-danger">
+                                                <i class="bi bi-geo-alt me-1"></i>Exp: {{ v.expected_department.code }} ({{ v.expected_location.name|default:"-" }})
+                                                <br>
+                                                <span class="text-success"><i class="bi bi-eye me-1"></i>Obs: {{ v.observed_department.code }} ({{ v.observed_location.name|default:"-" }})</span>
+                                            </div>
+                                        {% else %}
+                                            <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ v.observed_department.code }} &bull; {{ v.observed_location.name|default:"-" }}</div>
+                                        {% endif %}
+                                        {% if v.expected_condition != v.observed_condition %}
+                                            <div class="text-warning-emphasis mt-1">
+                                                <i class="bi bi-tools me-1"></i>Cond: {{ v.get_expected_condition_display }} &rarr; <span class="fw-bold">{{ v.get_observed_condition_display }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ v.verified_by.get_full_name|default:v.verified_by.username }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ v.remarks|default:"-" }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-clipboard-x fs-2 opacity-50 d-block mb-2"></i>
+                    <h6 class="fw-bold mb-1">No Physical Verifications Recorded</h6>
+                    <p class="small mb-3">This equipment has not yet undergone a physical inventory audit.</p>
+                    {% if request.user.is_admin %}
+                    <a href="{% url 'inventory:asset_verify' asset.asset_code %}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-clipboard-check me-1"></i> Conduct First Physical Verification
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Maintenance Records (Phase 8) -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-tools text-primary me-2"></i>Maintenance &amp; Repair History</h6>
+                {% if current_maintenance %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-wrench me-1"></i>Active Case</span>
+                {% elif maintenance_history %}
+                    <span class="badge bg-light text-dark border">{{ maintenance_history|length }} record{{ maintenance_history|length|pluralize }}</span>
+                {% else %}
+                    <span class="badge bg-light text-secondary border">No records</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if current_maintenance %}
+                <div class="p-3 bg-warning-subtle border-bottom">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span class="font-monospace fw-bold text-dark">#{{ current_maintenance.case_number }}</span>
+                        {% if current_maintenance.status == 'REPORTED' %}
+                            <span class="badge bg-secondary">Reported</span>
+                        {% elif current_maintenance.status == 'ASSESSED' %}
+                            <span class="badge bg-primary">Assessed</span>
+                        {% elif current_maintenance.status == 'IN_REPAIR' %}
+                            <span class="badge bg-warning text-dark">In Repair</span>
+                        {% endif %}
+                    </div>
+                    <div class="fw-semibold text-dark small">{{ current_maintenance.issue_title }}</div>
+                    <div class="text-muted small mt-1">
+                        Severity: <strong>{{ current_maintenance.get_severity_display }}</strong> &bull;
+                        Reported {{ current_maintenance.reported_at|date:"M d, Y" }}
+                    </div>
+                    <div class="mt-2">
+                        <a href="{% url 'maintenance:maintenance_detail' current_maintenance.pk %}" class="btn btn-sm btn-outline-dark">
+                            View Case Details &rarr;
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if maintenance_history %}
+                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="ps-3">Case</th>
+                                <th>Issue / Action</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mnt in maintenance_history %}
+                            <tr>
+                                <td class="ps-3 font-monospace fw-bold">
+                                    <a href="{% url 'maintenance:maintenance_detail' mnt.pk %}" class="text-decoration-none">
+                                        {{ mnt.case_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="text-truncate fw-medium text-dark" style="max-width: 140px;" title="{{ mnt.issue_title }}">{{ mnt.issue_title }}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ mnt.reported_at|date:"M d, Y" }}</div>
+                                </td>
+                                <td>
+                                    {% if mnt.repair_cost %}
+                                        &#8369;{{ mnt.repair_cost|floatformat:2 }}
+                                    {% else %}
+                                        &#8212;
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mnt.status == 'COMPLETED' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif mnt.status == 'FOR_REPLACEMENT' %}
+                                        <span class="badge bg-danger">Replacement</span>
+                                    {% elif mnt.status == 'CANCELLED' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% elif mnt.status == 'IN_REPAIR' %}
+                                        <span class="badge bg-warning text-dark">In Repair</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">{{ mnt.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3">
+                                    <a href="{% url 'maintenance:maintenance_detail' mnt.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-1" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% elif not current_maintenance %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-tools fs-2 opacity-50 d-block mb-2"></i>
+                    <p class="small mb-2">No maintenance or repair history recorded for this asset.</p>
+                    <a href="{% url 'maintenance:report_create_specific' asset.asset_code %}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-exclamation-octagon me-1"></i> Report an Issue
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Borrowing Records (Phase 7) -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-hand-index text-primary me-2"></i>Temporary Loan &amp; Reservation</h6>
+                {% if current_borrowing %}
+                    {% if current_borrowing.is_overdue %}
+                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+                    {% else %}
+                        <span class="badge bg-info text-dark">Currently Borrowed</span>
+                    {% endif %}
+                {% elif can_borrow %}
+                    <span class="badge bg-success">Available to Borrow</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ asset.get_status_display }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if current_borrowing %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-light p-3 me-3 text-info">
+                            <i class="bi bi-person-workspace fs-3"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold fs-6">
+                                {% if request.user.role != 'FACULTY' %}
+                                <a href="{% url 'organizations:employee_detail' current_borrowing.borrower.pk %}" class="text-decoration-none">
+                                    {{ current_borrowing.borrower.full_name }}
+                                </a>
+                                {% else %}
+                                    {{ current_borrowing.borrower.full_name }}
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-building me-1"></i>{{ current_borrowing.borrower_department.name|default:current_borrowing.borrower.department.name }}
+                                {% if current_borrowing.borrower.position %}&bull; {{ current_borrowing.borrower.position }}{% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <table class="table table-sm table-borderless mb-3">
+                        <tr>
+                            <th class="text-muted" style="width: 40%;">Released At:</th>
+                            <td>{{ current_borrowing.released_at|date:"M d, Y, g:i a" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Scheduled Return:</th>
+                            <td>
+                                <strong>{{ current_borrowing.requested_return|date:"M d, Y, g:i a" }}</strong>
+                                {% if current_borrowing.is_overdue %}
+                                    <span class="badge bg-danger ms-1">OVERDUE</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Release Condition:</th>
+                            <td><span class="badge bg-light text-dark border">{{ current_borrowing.get_condition_at_release_display }}</span></td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Purpose:</th>
+                            <td><small>{{ current_borrowing.purpose }}</small></td>
+                        </tr>
+                    </table>
+
+                    <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+                        <a href="{% url 'borrowing:borrowing_detail' current_borrowing.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-info-circle me-1"></i> View Loan Details
+                        </a>
+                        {% if request.user.is_admin %}
+                        <a href="{% url 'borrowing:borrowing_return' current_borrowing.pk %}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-arrow-return-left me-1"></i> Process Return
+                        </a>
+                        {% endif %}
+                    </div>
+                {% elif can_borrow %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-calendar2-check text-success fs-2 mb-2 d-block"></i>
+                        <h6 class="fw-bold mb-1">Equipment Available for Temporary Loan</h6>
+                        <p class="small text-muted mb-3">This equipment is currently in stock and can be requested or reserved for temporary academic or administrative use.</p>
+                        <a href="{% url 'borrowing:request_create_specific' asset.asset_code %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-hand-index me-1"></i> Request Equipment Loan
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-lock fs-2 opacity-50 mb-2 d-block"></i>
+                        <h6 class="fw-bold mb-1">Not Available to Borrow</h6>
+                        <p class="small mb-0">Equipment is currently marked as <strong>{{ asset.get_status_display }}</strong> and cannot be checked out.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Equipment Borrowing History (Phase 7) -->
+{% if borrowing_history %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-secondary me-2"></i>Temporary Loan & Reservation History</h6>
+                <span class="badge bg-secondary">{{ borrowing_history|length }} record(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Borrower</th>
+                                <th>Department</th>
+                                <th>Loan Schedule</th>
+                                <th>Status</th>
+                                <th>Condition</th>
+                                <th>Purpose</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in borrowing_history %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">
+                                        {% if request.user.role != 'FACULTY' %}
+                                        <a href="{% url 'organizations:employee_detail' b.borrower.pk %}" class="text-decoration-none">
+                                            {{ b.borrower.full_name }}
+                                        </a>
+                                        {% else %}
+                                            {{ b.borrower.full_name }}
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ b.borrower.position|default:"Staff" }}</small>
+                                </td>
+                                <td>{{ b.borrower_department.code|default:b.borrower.department.code }}</td>
+                                <td>
+                                    <div class="small">
+                                        {{ b.requested_start|date:"M d, g:i a" }} &rarr; {{ b.requested_return|date:"M d, g:i a" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if b.effective_status == 'PENDING' %}
+                                        <span class="badge bg-secondary">Pending</span>
+                                    {% elif b.effective_status == 'APPROVED' %}
+                                        <span class="badge bg-info text-dark">Approved</span>
+                                    {% elif b.effective_status == 'RELEASED' %}
+                                        <span class="badge bg-primary">Released</span>
+                                    {% elif b.effective_status == 'OVERDUE' %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                    {% elif b.effective_status == 'RETURNED' %}
+                                        <span class="badge bg-success">Returned</span>
+                                    {% elif b.effective_status == 'REJECTED' %}
+                                        <span class="badge bg-dark">Rejected</span>
+                                    {% elif b.effective_status == 'CANCELLED' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ b.effective_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.condition_at_return %}
+                                        <span class="badge bg-light text-dark border">{{ b.get_condition_at_return_display }}</span>
+                                    {% elif b.condition_at_release %}
+                                        <span class="badge bg-light text-dark border">{{ b.get_condition_at_release_display }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted text-truncate d-block" style="max-width: 160px;" title="{{ b.purpose }}">{{ b.purpose }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'borrowing:borrowing_detail' b.pk %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Past Assignment & Turnover History (if any) -->
+{% if assignment_history %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-secondary me-2"></i>Past Assignment & Turnover History</h6>
+                <span class="badge bg-secondary">{{ assignment_history|length }} completed turnover(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Personnel</th>
+                                <th>Department</th>
+                                <th>Assigned Period</th>
+                                <th>Condition (Out &rarr; In)</th>
+                                <th>Handled By</th>
+                                <th>Return Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in assignment_history %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">
+                                        {% if request.user.role != 'FACULTY' %}
+                                        <a href="{% url 'organizations:employee_detail' h.employee.pk %}" class="text-decoration-none">
+                                            {{ h.employee.full_name }}
+                                        </a>
+                                        {% else %}
+                                            {{ h.employee.full_name }}
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ h.employee.position|default:"Staff" }}</small>
+                                </td>
+                                <td>{{ h.employee.department.name|default:"-" }}</td>
+                                <td>
+                                    <div class="small">
+                                        {{ h.assigned_date|date:"M d, Y" }} &rarr; {{ h.returned_date|date:"M d, Y"|default:"Returned" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ h.get_condition_at_assignment_display }}</span>
+                                    <i class="bi bi-arrow-right text-muted mx-1"></i>
+                                    {% if h.condition_at_return == 'UNSERVICEABLE' %}
+                                        <span class="badge bg-danger">Unserviceable</span>
+                                    {% elif h.condition_at_return == 'POOR' %}
+                                        <span class="badge bg-warning text-dark">Poor</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ h.get_condition_at_return_display|default:"Good" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">Out: {{ h.assigned_by.username|default:"System" }} / In: {{ h.returned_by.username|default:"System" }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ h.remarks|default:"-" }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Phase 9: Disposal & Retirement History -->
+{% if disposal_history %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 border-start border-4 border-dark">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-archive-fill text-dark me-2"></i>Disposal & Retirement Records</h6>
+                <span class="badge bg-dark">{{ disposal_history|length }} record(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Disposal #</th>
+                                <th>Status</th>
+                                <th>Condition</th>
+                                <th>Method</th>
+                                <th>Reason</th>
+                                <th>Requested</th>
+                                <th>Executed</th>
+                                <th>Processed By</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in disposal_history %}
+                            <tr>
+                                <td class="fw-bold">
+                                    <a href="{% url 'disposals:disposal_detail' d.pk %}" class="text-decoration-none">
+                                        {{ d.disposal_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if d.status == 'PENDING' %}bg-warning text-dark
+                                        {% elif d.status == 'APPROVED' %}bg-info text-dark
+                                        {% elif d.status == 'COMPLETED' %}bg-success
+                                        {% elif d.status == 'REJECTED' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ d.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if d.condition_at_disposal == 'NEW' %}bg-success
+                                        {% elif d.condition_at_disposal == 'GOOD' %}bg-info
+                                        {% elif d.condition_at_disposal == 'FAIR' %}bg-secondary
+                                        {% elif d.condition_at_disposal == 'POOR' %}bg-warning text-dark
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ d.get_condition_at_disposal_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if d.disposal_method %}
+                                    <span class="badge bg-light text-dark border">{{ d.get_disposal_method_display }}</span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted text-truncate d-block" style="max-width: 180px;" title="{{ d.reason }}">
+                                        {{ d.reason }}
+                                    </small>
+                                </td>
+                                <td class="small">{{ d.requested_at|date:"M d, Y" }}</td>
+                                <td class="small">
+                                    {% if d.disposal_date %}
+                                        {{ d.disposal_date|date:"M d, Y" }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ d.processed_by.get_full_name|default:d.processed_by.username|default:"—" }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'disposals:disposal_detail' d.pk %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

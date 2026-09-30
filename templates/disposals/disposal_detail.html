@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block title %}Disposal {{ disposal.disposal_number }} - CBA IMS{% endblock %}
+{% block page_title %}Disposal Record: {{ disposal.disposal_number }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h4 class="mb-0 fw-bold">{{ disposal.disposal_number }}</h4>
+            <span class="badge 
+                {% if disposal.status == 'PENDING' %}bg-warning text-dark
+                {% elif disposal.status == 'APPROVED' %}bg-info text-dark
+                {% elif disposal.status == 'COMPLETED' %}bg-success
+                {% elif disposal.status == 'REJECTED' %}bg-danger
+                {% else %}bg-secondary{% endif %} fs-6">
+                {{ disposal.get_status_display }}
+            </span>
+        </div>
+        <p class="text-muted small mb-0">
+            Durable Asset: <strong>{{ disposal.asset.item_name }}</strong> ({{ disposal.asset.asset_code }})
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'disposals:disposal_print' pk=disposal.pk %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer me-1"></i> Print Summary
+        </a>
+        <a href="{% url 'inventory:asset_detail' asset_code=disposal.asset.asset_code %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-box-seam me-1"></i> View Asset
+        </a>
+        {% if disposal.status in 'PENDING,APPROVED' %}
+        <a href="{% url 'disposals:pending_list' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Queue
+        </a>
+        {% else %}
+        <a href="{% url 'disposals:history_list' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to History
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Lifecycle Stepper -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <div class="row text-center g-2">
+            <div class="col-4">
+                <div class="p-2 rounded {% if disposal.status in 'PENDING,APPROVED,COMPLETED' %}bg-primary text-white{% else %}bg-light text-muted{% endif %}">
+                    <div class="fw-bold"><i class="bi bi-file-earmark-plus me-1"></i>1. Requested</div>
+                    <div class="small">{{ disposal.requested_at|date:"M d, Y" }}</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 rounded 
+                    {% if disposal.status in 'APPROVED,COMPLETED' %}bg-primary text-white
+                    {% elif disposal.status == 'REJECTED' %}bg-danger text-white
+                    {% elif disposal.status == 'CANCELLED' %}bg-secondary text-white
+                    {% else %}bg-light text-muted{% endif %}">
+                    <div class="fw-bold">
+                        {% if disposal.status == 'REJECTED' %}
+                            <i class="bi bi-x-circle me-1"></i>2. Rejected
+                        {% elif disposal.status == 'CANCELLED' %}
+                            <i class="bi bi-slash-circle me-1"></i>2. Cancelled
+                        {% else %}
+                            <i class="bi bi-check-circle me-1"></i>2. Reviewed
+                        {% endif %}
+                    </div>
+                    <div class="small">
+                        {% if disposal.reviewed_at %}{{ disposal.reviewed_at|date:"M d, Y" }}{% else %}Awaiting Review{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 rounded {% if disposal.status == 'COMPLETED' %}bg-success text-white{% else %}bg-light text-muted{% endif %}">
+                    <div class="fw-bold"><i class="bi bi-archive-fill me-1"></i>3. Disposed</div>
+                    <div class="small">
+                        {% if disposal.completed_at %}{{ disposal.completed_at|date:"M d, Y" }}{% else %}Pending Disposal{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Action Banner -->
+{% if is_admin and not disposal.is_terminal %}
+<div class="card shadow-sm border-0 mb-4 border-start border-4 border-warning bg-light">
+    <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h6 class="fw-bold mb-1"><i class="bi bi-shield-exclamation text-warning me-2"></i>Administrative Actions</h6>
+            <div class="small text-muted">
+                {% if disposal.status == 'PENDING' %}
+                    This request is currently pending administrative review. You may approve, reject, or cancel this request.
+                {% elif disposal.status == 'APPROVED' %}
+                    This disposal has been authorized. You may now record physical disposal execution to permanently mark the asset as DISPOSED.
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if disposal.status == 'PENDING' %}
+            <a href="{% url 'disposals:disposal_approve' pk=disposal.pk %}" class="btn btn-success btn-sm">
+                <i class="bi bi-check-lg me-1"></i> Approve Request
+            </a>
+            <a href="{% url 'disposals:disposal_reject' pk=disposal.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-x-lg me-1"></i> Reject
+            </a>
+            <a href="{% url 'disposals:disposal_cancel' pk=disposal.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-slash-circle me-1"></i> Cancel
+            </a>
+            {% elif disposal.status == 'APPROVED' %}
+            <a href="{% url 'disposals:disposal_complete' pk=disposal.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-archive-fill me-1"></i> Complete Physical Disposal
+            </a>
+            <a href="{% url 'disposals:disposal_cancel' pk=disposal.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-slash-circle me-1"></i> Cancel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Left Column: Disposal Information -->
+    <div class="col-12 col-lg-8">
+        <!-- Request Details -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold fs-6">
+                    <i class="bi bi-file-earmark-text text-primary me-2"></i>Disposal Request Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Disposal Number</div>
+                        <div class="fw-semibold">{{ disposal.disposal_number }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Requested At</div>
+                        <div>{{ disposal.requested_at|date:"F j, Y, g:i a" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Requested By</div>
+                        <div>{{ disposal.requested_by.get_full_name|default:disposal.requested_by.username }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Condition at Disposal</div>
+                        <div>
+                            <span class="badge 
+                                {% if disposal.condition_at_disposal == 'NEW' %}bg-success
+                                {% elif disposal.condition_at_disposal == 'GOOD' %}bg-info
+                                {% elif disposal.condition_at_disposal == 'FAIR' %}bg-secondary
+                                {% elif disposal.condition_at_disposal == 'POOR' %}bg-warning text-dark
+                                {% else %}bg-danger{% endif %}">
+                                {{ disposal.get_condition_at_disposal_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if disposal.maintenance_reference %}
+                    <div class="col-12">
+                        <div class="alert alert-warning py-2 px-3 mb-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-wrench-adjustable text-warning me-2"></i>
+                                <strong>Originating Maintenance Case:</strong> {{ disposal.maintenance_reference.case_number }}
+                                <span class="badge bg-warning text-dark ms-2">For Replacement</span>
+                            </div>
+                            <a href="{% url 'maintenance:maintenance_detail' pk=disposal.maintenance_reference.pk %}" class="btn btn-sm btn-outline-dark">
+                                View Case
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-12">
+                        <div class="small text-muted">Disposal Justification / Reason</div>
+                        <div class="p-3 bg-light rounded mt-1 border">{{ disposal.reason|linebreaksbr }}</div>
+                    </div>
+                    {% if disposal.remarks %}
+                    <div class="col-12">
+                        <div class="small text-muted">Additional Remarks</div>
+                        <div class="small mt-1 text-muted">{{ disposal.remarks|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Review / Approval Card -->
+        {% if disposal.reviewed_at %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold fs-6">
+                    <i class="bi bi-shield-check text-info me-2"></i>Administrative Review & Decision
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Reviewed By</div>
+                        <div class="fw-semibold">{{ disposal.reviewed_by.get_full_name|default:disposal.reviewed_by.username|default:"System Administrator" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Reviewed At</div>
+                        <div>{{ disposal.reviewed_at|date:"F j, Y, g:i a" }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">Review Remarks / Decision Notes</div>
+                        <div class="p-3 bg-light rounded mt-1 border">{{ disposal.review_remarks|default:"No specific review remarks recorded."|linebreaksbr }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Physical Disposal Execution Card (Completed) -->
+        {% if disposal.status == 'COMPLETED' %}
+        <div class="card shadow-sm border-0 mb-4 border-start border-4 border-success">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold fs-6 text-success">
+                    <i class="bi bi-archive-fill me-2"></i>Physical Disposal Execution Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Disposal Method</div>
+                        <div class="fw-bold fs-6 text-dark">{{ disposal.get_disposal_method_display }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Disposal Date</div>
+                        <div class="fw-semibold">{{ disposal.disposal_date|date:"F j, Y"|default:"—" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Processed By (Property Custodian)</div>
+                        <div>{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username|default:"—" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Recipient / Destination</div>
+                        <div>{{ disposal.recipient_or_destination|default:"—" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Reference / Document #</div>
+                        <div>{{ disposal.reference_number|default:"—" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Disposal Proceeds (Informational)</div>
+                        <div class="fw-semibold">
+                            {% if disposal.proceeds_amount %}
+                                ₱{{ disposal.proceeds_amount|floatformat:2 }}
+                            {% else %}
+                                ₱0.00
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">Completed Timestamp</div>
+                        <div class="small text-muted">{{ disposal.completed_at|date:"F j, Y, g:i a"|default:"—" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Asset Specifications & Custody -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 fw-bold fs-6">
+                    <i class="bi bi-box-seam text-primary me-2"></i>Asset Specifications
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if disposal.asset.asset_image %}
+                    <img src="{{ disposal.asset.asset_image.url }}" alt="{{ disposal.asset.item_name }}" class="img-fluid rounded border mb-2" style="max-height: 180px; object-fit: contain;">
+                    {% else %}
+                    <div class="bg-light rounded p-4 text-muted mb-2">
+                        <i class="bi bi-image fs-1 opacity-25"></i>
+                        <div class="small mt-1">No Image Available</div>
+                    </div>
+                    {% endif %}
+                    <h6 class="fw-bold mb-0">{{ disposal.asset.item_name }}</h6>
+                    <span class="badge bg-secondary font-monospace mt-1">{{ disposal.asset.asset_code }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Operational Status:</span>
+                    <span class="badge 
+                        {% if disposal.asset.status == 'DISPOSED' %}bg-dark text-white
+                        {% elif disposal.asset.status == 'DAMAGED' %}bg-danger
+                        {% elif disposal.asset.status == 'AVAILABLE' %}bg-success
+                        {% elif disposal.asset.status == 'ASSIGNED' %}bg-primary
+                        {% else %}bg-secondary{% endif %}">
+                        {{ disposal.asset.get_status_display }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Current Condition:</span>
+                    <span class="badge 
+                        {% if disposal.asset.condition == 'NEW' %}bg-success
+                        {% elif disposal.asset.condition == 'GOOD' %}bg-info
+                        {% elif disposal.asset.condition == 'FAIR' %}bg-secondary
+                        {% elif disposal.asset.condition == 'POOR' %}bg-warning text-dark
+                        {% else %}bg-danger{% endif %}">
+                        {{ disposal.asset.get_condition_display }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Property Number:</span>
+                    <span class="fw-semibold small">{{ disposal.asset.property_number|default:"—" }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Category:</span>
+                    <span class="small">{{ disposal.asset.category.name }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Department:</span>
+                    <span class="small">{{ disposal.asset.department.name }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Acquisition Cost:</span>
+                    <span class="small">{% if disposal.asset.acquisition_cost %}₱{{ disposal.asset.acquisition_cost|floatformat:2 }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted small">Acquisition Date:</span>
+                    <span class="small">{{ disposal.asset.acquisition_date|date:"M d, Y"|default:"—" }}</span>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <a href="{% url 'inventory:asset_detail' asset_code=disposal.asset.asset_code %}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-eye me-1"></i>View Full Asset Record
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

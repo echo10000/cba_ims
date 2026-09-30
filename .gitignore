@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Database
+db.sqlite3
+db.sqlite3-journal
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+local.py
+
+# Logs
+logs/
+*.log
+
+# Backups & Dumps
+backup/
+backups/
+*.dump
+*.sql
+
+# Media files (user uploads)
+media/
+
+# Static files collected
+staticfiles/
+
+# Temp files
+tmp/
+temp/
+
+# Distribution / Packaging
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Editor / IDE metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db

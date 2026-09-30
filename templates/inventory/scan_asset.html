@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Scan Asset QR Code - CBA IMS{% endblock %}
+{% block page_title %}Scan Asset{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scanner-viewport {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        min-height: 280px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #343a40;
+    }
+    .scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 220px;
+        height: 220px;
+        border: 3px solid rgba(13, 110, 253, 0.85);
+        border-radius: 16px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        z-index: 5;
+    }
+    .scanner-scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #0d6efd, transparent);
+        box-shadow: 0 0 8px #0d6efd;
+        animation: scanline 2s linear infinite;
+        display: none;
+    }
+    @keyframes scanline {
+        0% { top: 0; }
+        50% { top: 100%; }
+        100% { top: 0; }
+    }
+    #qr-video-container {
+        width: 100%;
+        height: 100%;
+    }
+    #qr-video-container video {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 380px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                {% if request.user.role != 'FACULTY' %}
+                <li class="breadcrumb-item"><a href="{% url 'inventory:asset_list' %}" class="text-decoration-none">Assets</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active" aria-current="page">Scan Asset</li>
+            </ol>
+        </nav>
+
+        <!-- Scanner Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-camera fs-5 text-warning"></i>
+                    <h5 class="card-title mb-0 fw-bold">Camera QR Scanner</h5>
+                </div>
+                <span class="badge bg-secondary">Mobile & Desktop</span>
+            </div>
+
+            <div class="card-body p-3 p-md-4">
+                <!-- Status & Warning Alerts -->
+                <div id="scanner-feedback" class="alert alert-info d-flex align-items-center py-2 px-3 mb-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                    <span id="feedback-text">Click "Start Camera" to scan a physical asset label.</span>
+                </div>
+
+                <div id="scanner-error" class="alert alert-danger d-none py-2 px-3 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span id="error-text"></span>
+                </div>
+
+                <!-- Video Viewport -->
+                <div class="scanner-viewport mb-3">
+                    <div id="qr-video-container"></div>
+                    <div id="scanner-overlay" class="scanner-overlay d-none">
+                        <div id="scanner-scanline" class="scanner-scanline"></div>
+                    </div>
+                    <div id="scanner-placeholder" class="text-center text-muted p-4">
+                        <i class="bi bi-qr-code-scan fs-1 mb-2 opacity-50 d-block"></i>
+                        <small>Camera preview is currently inactive.</small>
+                    </div>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="d-grid gap-2 mb-4">
+                    <button id="btn-start-camera" type="button" class="btn btn-primary btn-lg shadow-sm">
+                        <i class="bi bi-camera-video me-1"></i> Start Camera Scanner
+                    </button>
+                    <button id="btn-stop-camera" type="button" class="btn btn-outline-danger d-none">
+                        <i class="bi bi-stop-circle me-1"></i> Stop Camera
+                    </button>
+                </div>
+
+                <!-- Manual Lookup Section -->
+                <div class="position-relative my-4">
+                    <hr class="text-muted">
+                    <div class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small fw-semibold text-uppercase">
+                        Or Enter Asset Code Manually
+                    </div>
+                </div>
+
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.asset_code.id_for_label }}" class="form-label fw-semibold">Asset Code</label>
+                        {{ form.asset_code }}
+                        {% if form.asset_code.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.asset_code.errors %}
+                                    <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Example: <span class="font-monospace">CBA-IT-00001</span> or <span class="font-monospace">CBA-OE-00002</span>. Case-insensitive.</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="bi bi-search me-1"></i> Find Asset Record
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-footer bg-light p-3 small text-muted">
+                <i class="bi bi-shield-lock me-1 text-primary"></i> 
+                Camera scans require HTTPS in production (or localhost for development). Camera permissions are only active while on this page.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var html5QrCode = null;
+    var isScanning = false;
+
+    var btnStart = document.getElementById('btn-start-camera');
+    var btnStop = document.getElementById('btn-stop-camera');
+    var feedbackAlert = document.getElementById('scanner-feedback');
+    var feedbackText = document.getElementById('feedback-text');
+    var errorAlert = document.getElementById('scanner-error');
+    var errorText = document.getElementById('error-text');
+    var overlay = document.getElementById('scanner-overlay');
+    var scanline = document.getElementById('scanner-scanline');
+    var placeholder = document.getElementById('scanner-placeholder');
+
+    function showFeedback(msg, alertClass) {
+        feedbackAlert.className = 'alert ' + (alertClass || 'alert-info') + ' d-flex align-items-center py-2 px-3 mb-3';
+        feedbackText.textContent = msg;
+    }
+
+    function showError(msg) {
+        errorAlert.classList.remove('d-none');
+        errorText.textContent = msg;
+    }
+
+    function hideError() {
+        errorAlert.classList.add('d-none');
+    }
+
+    function stopScanner() {
+        if (html5QrCode && isScanning) {
+            html5QrCode.stop().then(function() {
+                isScanning = false;
+                btnStart.classList.remove('d-none');
+                btnStop.classList.add('d-none');
+                overlay.classList.add('d-none');
+                scanline.style.display = 'none';
+                placeholder.classList.remove('d-none');
+                showFeedback('Camera stopped. Ready to scan.');
+            }).catch(function(err) {
+                console.warn('Error stopping scanner:', err);
+            });
+        }
+    }
+
+    btnStart.addEventListener('click', function() {
+        hideError();
+
+        // Check if library loaded
+        if (typeof Html5Qrcode === 'undefined') {
+            showError('QR scanner library failed to load. Please use manual asset code lookup below.');
+            return;
+        }
+
+        // Check if camera API is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showError('Camera access is not supported by your browser or connection is not secure (HTTPS required). Please use manual asset code lookup.');
+            return;
+        }
+
+        html5QrCode = new Html5Qrcode("qr-video-container");
+        var config = {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.0,
+        };
+
+        showFeedback('Requesting camera permission...', 'alert-warning');
+
+        // Prefer rear camera (environment) on mobile devices
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            function onScanSuccess(decodedText, decodedResult) {
+                // Prevent duplicate trigger
+                if (!isScanning) return;
+                
+                // Validate QR payload securely
+                var scanned = decodedText.trim();
+                console.log('QR Code detected:', scanned);
+
+                // Check for canonical route or asset code format
+                var match = scanned.match(/\/q\/assets\/([A-Za-z0-9\-]+)/i) || 
+                            scanned.match(/CBA-[A-Za-z0-9\-]+/i);
+
+                if (match) {
+                    var code = match[1] || match[0];
+                    // Clean code if full match
+                    code = code.replace(/\/$/, '').trim().toUpperCase();
+
+                    isScanning = false;
+                    showFeedback('Asset detected: ' + code + '. Opening record...', 'alert-success');
+                    
+                    // Stop camera and navigate
+                    html5QrCode.stop().then(function() {
+                        window.location.href = '/q/assets/' + encodeURIComponent(code) + '/';
+                    }).catch(function() {
+                        window.location.href = '/q/assets/' + encodeURIComponent(code) + '/';
+                    });
+                } else {
+                    // Reject unrelated QR codes
+                    showError('This QR code is not a valid CBA asset label. Scanned content does not match asset records.');
+                    showFeedback('Invalid QR code scanned. Point camera at an official CBA asset label.', 'alert-danger');
+                }
+            },
+            function onScanFailure(error) {
+                // Scan failure happens on frames without QR - ignore frame noise
+            }
+        ).then(function() {
+            isScanning = true;
+            btnStart.classList.add('d-none');
+            btnStop.classList.remove('d-none');
+            placeholder.classList.add('d-none');
+            overlay.classList.remove('d-none');
+            scanline.style.display = 'block';
+            showFeedback('Point camera at the physical QR code label on the asset.', 'alert-primary');
+        }).catch(function(err) {
+            console.error('Camera start failed:', err);
+            showError('Unable to access camera: ' + (err.message || 'Permission denied or no camera device found.'));
+            showFeedback('Camera activation failed. Use manual lookup below.', 'alert-secondary');
+        });
+    });
+
+    btnStop.addEventListener('click', stopScanner);
+
+    // Stop camera when leaving page or navigating away
+    window.addEventListener('beforeunload', stopScanner);
+    window.addEventListener('pagehide', stopScanner);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disposal Record - {{ disposal.disposal_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fff;
+            color: #333;
+            font-size: 13px;
+        }
+        .print-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .header-title {
+            text-align: center;
+            border-bottom: 2px solid #212529;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .field-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 600;
+        }
+        .field-value {
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .section-box {
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            margin-top: 50px;
+            margin-bottom: 5px;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                border: none;
+                padding: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+            body {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print bg-light py-2 border-bottom mb-3">
+        <div class="container text-center">
+            <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
+                Print Disposal Record
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary btn-sm">
+                Close Window
+            </button>
+        </div>
+    </div>
+
+    <div class="print-container">
+        <!-- Header -->
+        <div class="header-title">
+            <h5 class="fw-bold mb-1">COLLEGE OF BUSINESS ADMINISTRATION</h5>
+            <h6 class="text-secondary mb-1">Asset & Inventory Management System</h6>
+            <h4 class="fw-bold text-dark mt-2 mb-0">PROPERTY DISPOSAL AND RETIREMENT RECORD</h4>
+            <div class="text-muted small mt-1">Disposal Tracking ID: <strong>{{ disposal.disposal_number }}</strong></div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <div class="field-label">Disposal Status</div>
+                <div class="field-value">
+                    <span class="badge {% if disposal.status == 'COMPLETED' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ disposal.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="field-label">Record Date</div>
+                <div class="field-value">{{ disposal.requested_at|date:"F j, Y" }}</div>
+            </div>
+        </div>
+
+        <!-- Asset Details -->
+        <div class="section-box">
+            <h6 class="fw-bold border-bottom pb-2 mb-2 text-primary">I. ASSET IDENTIFICATION</h6>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="field-label">Asset Code</div>
+                    <div class="field-value font-monospace">{{ disposal.asset.asset_code }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Property Number</div>
+                    <div class="field-value">{{ disposal.asset.property_number|default:"N/A" }}</div>
+                </div>
+                <div class="col-12">
+                    <div class="field-label">Item Name & Description</div>
+                    <div class="field-value">{{ disposal.asset.item_name }} {% if disposal.asset.description %}&mdash; {{ disposal.asset.description }}{% endif %}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Category</div>
+                    <div class="field-value">{{ disposal.asset.category.name }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Department of Custody</div>
+                    <div class="field-value">{{ disposal.asset.department.name }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Acquisition Date</div>
+                    <div class="field-value">{{ disposal.asset.acquisition_date|date:"F j, Y"|default:"N/A" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Acquisition Cost</div>
+                    <div class="field-value">{% if disposal.asset.acquisition_cost %}₱{{ disposal.asset.acquisition_cost|floatformat:2 }}{% else %}N/A{% endif %}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Justification & Assessment -->
+        <div class="section-box">
+            <h6 class="fw-bold border-bottom pb-2 mb-2 text-primary">II. DISPOSAL JUSTIFICATION & CONDITION EVALUATION</h6>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="field-label">Condition at Disposal</div>
+                    <div class="field-value">{{ disposal.get_condition_at_disposal_display }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Originating Reference</div>
+                    <div class="field-value">
+                        {% if disposal.maintenance_reference %}
+                            Maintenance Case {{ disposal.maintenance_reference.case_number }} (For Replacement)
+                        {% else %}
+                            Administrative Condemnation
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="field-label">Reason / Justification</div>
+                    <div class="field-value">{{ disposal.reason|linebreaksbr }}</div>
+                </div>
+                {% if disposal.review_remarks %}
+                <div class="col-12">
+                    <div class="field-label">Administrative Review Notes</div>
+                    <div class="field-value">{{ disposal.review_remarks|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Disposal Execution -->
+        {% if disposal.status == 'COMPLETED' %}
+        <div class="section-box">
+            <h6 class="fw-bold border-bottom pb-2 mb-2 text-primary">III. PHYSICAL DISPOSAL EXECUTION DETAILS</h6>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="field-label">Disposal Method</div>
+                    <div class="field-value fw-bold">{{ disposal.get_disposal_method_display }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Disposal Date</div>
+                    <div class="field-value">{{ disposal.disposal_date|date:"F j, Y" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Recipient / Destination</div>
+                    <div class="field-value">{{ disposal.recipient_or_destination|default:"N/A" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Document / Reference Number</div>
+                    <div class="field-value">{{ disposal.reference_number|default:"N/A" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Proceeds Amount (Informational)</div>
+                    <div class="field-value">
+                        {% if disposal.proceeds_amount %}₱{{ disposal.proceeds_amount|floatformat:2 }}{% else %}₱0.00{% endif %}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="field-label">Processed By</div>
+                    <div class="field-value">{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username|default:"Property Custodian" }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Signatures -->
+        <div class="row mt-4 pt-3">
+            <div class="col-6 text-center">
+                <div class="signature-line"></div>
+                <div class="fw-bold">{{ disposal.requested_by.get_full_name|default:disposal.requested_by.username }}</div>
+                <div class="small text-muted">Property Custodian / Requester</div>
+            </div>
+            <div class="col-6 text-center">
+                <div class="signature-line"></div>
+                <div class="fw-bold">
+                    {% if disposal.reviewed_by %}
+                        {{ disposal.reviewed_by.get_full_name|default:disposal.reviewed_by.username }}
+                    {% else %}
+                        Authorized College Official
+                    {% endif %}
+                </div>
+                <div class="small text-muted">Reviewed / Approved By</div>
+            </div>
+        </div>
+
+        <div class="text-center text-muted small mt-5 pt-3 border-top">
+            This document represents a system-generated property retirement record for the College of Business Administration IMS.<br>
+            Permanent asset record retained in institutional archives. Generated on {% now "F j, Y, g:i a" %}.
+        </div>
+    </div>
+</body>
+</html>
