@@ -458,7 +458,7 @@ class AssetDeleteView(AdminRequiredMixin, DeleteView):
 # CATEGORY VIEWS
 # ==============================================================================
 
-class CategoryListView(AdminRequiredMixin, ListView):
+class CategoryListView(InventoryAccessMixin, ListView):
     model = AssetCategory
     template_name = 'inventory/category_list.html'
     context_object_name = 'categories'
@@ -500,7 +500,7 @@ class CategoryUpdateView(AdminRequiredMixin, UpdateView):
 # BRAND VIEWS
 # ==============================================================================
 
-class BrandListView(AdminRequiredMixin, ListView):
+class BrandListView(InventoryAccessMixin, ListView):
     model = Brand
     template_name = 'inventory/brand_list.html'
     context_object_name = 'brands'

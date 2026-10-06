@@ -17,9 +17,11 @@
                     <a href="{% url 'inventory:category_list' %}" class="btn btn-outline-danger" title="Clear search"><i class="bi bi-x-circle"></i></a>
                 {% endif %}
             </form>
+            {% if request.user.is_admin %}
             <a href="{% url 'inventory:category_create' %}" class="btn btn-primary text-nowrap">
                 <i class="bi bi-plus-lg"></i> Add Category
             </a>
+            {% endif %}
         </div>
 
         <!-- Desktop Table View -->
@@ -30,7 +32,7 @@
                         <th style="width: 100px;">Code</th>
                         <th>Name</th>
                         <th>Description</th>
-                        <th class="text-end" style="width: 100px;">Actions</th>
+                        {% if request.user.is_admin %}<th class="text-end" style="width: 100px;">Actions</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -39,11 +41,13 @@
                         <td><span class="badge bg-secondary">{{ cat.code }}</span></td>
                         <td><strong>{{ cat.name }}</strong></td>
                         <td class="text-truncate" style="max-width: 300px;">{{ cat.description|default:"-" }}</td>
+                        {% if request.user.is_admin %}
                         <td class="text-end">
                             <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </td>
+                        {% endif %}
                     </tr>
                     {% empty %}
                     <tr>
@@ -63,11 +67,13 @@
                         <span class="badge bg-secondary mb-1">{{ cat.code }}</span>
                         <div class="card-title mb-0">{{ cat.name }}</div>
                     </div>
+                    {% if request.user.is_admin %}
                     <div>
                         <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
                             <i class="bi bi-pencil"></i>
                         </a>
                     </div>
+                    {% endif %}
                 </div>
                 {% if cat.description %}
                 <div class="card-meta">
