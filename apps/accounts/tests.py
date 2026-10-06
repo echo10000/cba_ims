@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from apps.organizations.models import Department, Location, Employee
 from .models import User
 
 
@@ -111,6 +112,47 @@ class AccountViewsTests(TestCase):
         new_user.refresh_from_db()
         self.assertFalse(new_user.is_active)
 
+    def test_combined_user_and_employee_creation(self):
+        self.client.login(username='sysadmin', password='Password123!')
+
+        dept = Department.objects.create(name='Dept of Accountancy', code='ACC')
+        loc = Location.objects.create(name='Faculty Room 101', building='CBA Main')
+
+        create_url = reverse('accounts:user_create')
+        post_data = {
+            'username': 'prof_delacruz',
+            'email': 'delacruz@cba.edu',
+            'first_name': 'Juan',
+            'last_name': 'Dela Cruz',
+            'role': User.Role.FACULTY,
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+            'create_employee_profile': 'on',
+            'employee_id': 'EMP-FAC-099',
+            'position': 'Assistant Professor',
+            'department': dept.pk,
+            'location': loc.pk,
+            'contact_number': '+63 912 345 6789',
+        }
+        response = self.client.post(create_url, post_data)
+        self.assertEqual(response.status_code, 302)
+
+        # Verify User created
+        user = User.objects.get(username='prof_delacruz')
+        self.assertEqual(user.first_name, 'Juan')
+        self.assertEqual(user.email, 'delacruz@cba.edu')
+
+        # Verify Employee profile linked
+        self.assertTrue(hasattr(user, 'employee_profile'))
+        profile = user.employee_profile
+        self.assertEqual(profile.employee_id, 'EMP-FAC-099')
+        self.assertEqual(profile.first_name, 'Juan')
+        self.assertEqual(profile.last_name, 'Dela Cruz')
+        self.assertEqual(profile.position, 'Assistant Professor')
+        self.assertEqual(profile.department, dept)
+        self.assertEqual(profile.location, loc)
+        self.assertEqual(profile.contact_number, '+63 912 345 6789')
+
 
 class PWAResponsiveTests(TestCase):
     def setUp(self):
@@ -171,4 +213,3 @@ class PWAResponsiveTests(TestCase):
 
         # Manifest link
         self.assertIn('manifest.json', content)
-

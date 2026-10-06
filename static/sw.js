@@ -3,7 +3,7 @@
 // Authenticated HTML responses are NEVER cached to prevent
 // private data from appearing in offline mode for other users.
 
-const VERSION = 'cba-ims-v2';
+const VERSION = 'cba-ims-v3';
 const CACHE_NAME = `${VERSION}-static`;
 const OFFLINE_URL = '/static/offline.html';
 
@@ -59,38 +59,38 @@ self.addEventListener('fetch', function(event) {
     if (event.request.mode === 'navigate') {
         event.respondWith(
             fetch(event.request).catch(function() {
-                // Only serve offline fallback for the offline page itself
                 return caches.match(OFFLINE_URL);
             })
         );
         return;
     }
 
-    // Static assets: cache-first (safe — no user data)
-    if (
-        url.pathname.startsWith('/static/') ||
+    // Static assets & CDNs: cache-first with network fallback
+    if (url.pathname.startsWith('/static/') ||
         url.hostname === 'cdn.jsdelivr.net' ||
         url.hostname === 'fonts.googleapis.com' ||
-        url.hostname === 'fonts.gstatic.com'
-    ) {
+        url.hostname === 'fonts.gstatic.com') {
         event.respondWith(
             caches.match(event.request).then(function(cached) {
-                return cached || fetch(event.request).then(function(response) {
-                    // Only cache successful responses for static assets
-                    if (response && response.status === 200 && response.type !== 'error') {
-                        var responseClone = response.clone();
+                if (cached) return cached;
+                return fetch(event.request).then(function(response) {
+                    // Only cache successful standard responses
+                    if (response && response.status === 200 && response.type === 'basic') {
+                        const toCache = response.clone();
                         caches.open(CACHE_NAME).then(function(cache) {
-                            cache.put(event.request, responseClone);
+                            cache.put(event.request, toCache);
                         });
                     }
                     return response;
+                }).catch(function() {
+                    // If static asset fetch fails and not in cache, let it fail gracefully
+                    return new Response('', { status: 408, statusText: 'Request timed out' });
                 });
             })
         );
         return;
     }
 
-    // All other requests (API, media, authenticated views): network only
-    // SECURITY: /media/ files are user uploads — not cached
+    // All other requests: straight network
     event.respondWith(fetch(event.request));
 });
