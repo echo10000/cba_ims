@@ -224,7 +224,7 @@
                         <span class="text-muted">—</span>
                         {% endif %}
                     </td>
-                    <td class="small">{{ dsp.processed_by.get_full_name|default:dsp.processed_by.username|default:"—" }}</td>
+                    <td class="small">{% if dsp.processed_by %}{{ dsp.processed_by.get_full_name|default:dsp.processed_by.username }}{% else %}&mdash;{% endif %}</td>
                     {% else %}
                     <td class="small text-muted">{{ dsp.requested_at|date:"M d, Y" }}</td>
                     <td class="small">{{ dsp.requested_by.get_full_name|default:dsp.requested_by.username }}</td>

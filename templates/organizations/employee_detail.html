@@ -281,8 +281,8 @@
                                         {{ hist.get_condition_at_assignment_display }} &rarr; <span class="badge bg-light text-dark border">{{ hist.get_condition_at_return_display|default:"Good" }}</span>
                                     </small>
                                 </td>
-                                <td><small>{{ hist.assigned_by.get_full_name|default:hist.assigned_by.username|default:"System" }}</small></td>
-                                <td><small>{{ hist.returned_by.get_full_name|default:hist.returned_by.username|default:"System" }}</small></td>
+                                <td><small>{% if hist.assigned_by %}{{ hist.assigned_by.get_full_name|default:hist.assigned_by.username }}{% else %}System{% endif %}</small></td>
+                                <td><small>{% if hist.returned_by %}{{ hist.returned_by.get_full_name|default:hist.returned_by.username }}{% else %}System{% endif %}</small></td>
                                 <td><span class="badge bg-secondary">Returned</span></td>
                             </tr>
                             {% empty %}

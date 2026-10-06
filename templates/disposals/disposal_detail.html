@@ -233,7 +233,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="small text-muted">Processed By (Property Custodian)</div>
-                        <div>{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username|default:"—" }}</div>
+                        <div>{% if disposal.processed_by %}{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username }}{% else %}&mdash;{% endif %}</div>
                     </div>
                     <div class="col-sm-6">
                         <div class="small text-muted">Recipient / Destination</div>

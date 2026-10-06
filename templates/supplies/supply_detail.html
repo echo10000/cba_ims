@@ -138,7 +138,7 @@
                     </tr>
                     <tr class="border-bottom">
                         <th class="text-muted ps-3 py-2">Created By:</th>
-                        <td class="py-2"><small>{{ supply.created_by.get_full_name|default:supply.created_by.username|default:"System" }}</small></td>
+                        <td class="py-2"><small>{% if supply.created_by %}{{ supply.created_by.get_full_name|default:supply.created_by.username }}{% else %}System{% endif %}</small></td>
                     </tr>
                     <tr>
                         <th class="text-muted ps-3 py-2">Registered:</th>

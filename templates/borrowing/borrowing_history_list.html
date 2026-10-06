@@ -55,7 +55,7 @@
                         <td>
                             {% if b.released_at and b.returned_at %}
                                 <div class="small text-dark">{{ b.released_at|date:"M d, Y" }} &rarr; {{ b.returned_at|date:"M d, Y" }}</div>
-                                <div class="text-muted small">Returned to: {{ b.returned_to.get_full_name|default:b.returned_to.username|default:"System" }}</div>
+                                <div class="text-muted small">Returned to: {% if b.returned_to %}{{ b.returned_to.get_full_name|default:b.returned_to.username }}{% else %}System{% endif %}</div>
                             {% else %}
                                 <div class="small text-muted">{{ b.requested_start|date:"M d, Y" }} &rarr; {{ b.requested_return|date:"M d, Y" }}</div>
                             {% endif %}

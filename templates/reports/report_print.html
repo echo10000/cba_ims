@@ -177,7 +177,7 @@
                     <td class="text-center">{{ a.property_number|default:"—" }}</td>
                     <td class="fw-semibold">{{ a.item_name }}</td>
                     <td>{{ a.category.name|default:"—" }}</td>
-                    <td>{{ a.department.code|default:a.department.name|default:"—" }}</td>
+                    <td>{% if a.department %}{{ a.department.code|default:a.department.name }}{% else %}&mdash;{% endif %}</td>
                     <td>{{ a.current_location.name|default:"—" }}</td>
                     <td class="text-center">{{ a.get_condition_display }}</td>
                     <td class="text-center">{{ a.get_status_display }}</td>

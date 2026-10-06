@@ -194,7 +194,7 @@
                 </div>
                 <div class="col-6">
                     <div class="field-label">Processed By</div>
-                    <div class="field-value">{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username|default:"Property Custodian" }}</div>
+                    <div class="field-value">{% if disposal.processed_by %}{{ disposal.processed_by.get_full_name|default:disposal.processed_by.username }}{% else %}Property Custodian{% endif %}</div>
                 </div>
             </div>
         </div>

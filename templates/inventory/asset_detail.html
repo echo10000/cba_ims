@@ -1111,7 +1111,7 @@
                                         <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="small">{{ d.processed_by.get_full_name|default:d.processed_by.username|default:"—" }}</td>
+                                <td class="small">{% if d.processed_by %}{{ d.processed_by.get_full_name|default:d.processed_by.username }}{% else %}&mdash;{% endif %}</td>
                                 <td class="text-end">
                                     <a href="{% url 'disposals:disposal_detail' d.pk %}" class="btn btn-outline-secondary btn-sm">
                                         <i class="bi bi-eye"></i>
