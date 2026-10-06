@@ -28,6 +28,12 @@ ALLOWED_HOSTS = config(
     cast=Csv()
 )
 
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:8000,http://127.0.0.1:8000,https://localhost:8000,https://127.0.0.1:8000',
+    cast=Csv()
+)
+
 # Application definition
 
 INSTALLED_APPS = [
