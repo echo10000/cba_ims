@@ -1,6 +1,6 @@
 {% if page_obj.has_other_pages %}
 <nav aria-label="Page navigation" class="mt-4">
-    <ul class="pagination justify-content-center mb-0 flex-wrap">
+    <ul class="pagination cba-pagination justify-content-center mb-0 flex-wrap">
         
         {% if page_obj.has_previous %}
             <li class="page-item">
@@ -48,9 +48,5 @@
         {% endif %}
         
     </ul>
-    
-    <div class="text-center mt-2 d-none d-sm-block text-muted small">
-        Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total items)
-    </div>
 </nav>
 {% endif %}

@@ -41,7 +41,7 @@
                         <th>Department</th>
                         <th>Location</th>
                         <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th class="text-end" style="width: 150px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,11 +68,42 @@
                                 <a href="{% url 'organizations:employee_edit' emp.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form method="post" action="{% url 'organizations:employee_toggle' emp.pk %}" class="d-inline">
+                                <!-- Inline Alpine Confirmation for Safe Employee Toggle -->
+                                <form method="post"
+                                      action="{% url 'organizations:employee_toggle' emp.pk %}"
+                                      class="d-inline position-relative"
+                                      x-data="{ confirming: false }"
+                                      @keydown.escape.window="confirming = false">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm {% if emp.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} confirm-action" title="Toggle Status">
+                                    <button type="button"
+                                            class="btn btn-sm {% if emp.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                                            x-show="!confirming"
+                                            @click="confirming = true"
+                                            title="{% if emp.is_active %}Deactivate Employee{% else %}Activate Employee{% endif %}"
+                                            aria-label="{% if emp.is_active %}Deactivate Employee{% else %}Activate Employee{% endif %}">
                                         <i class="bi {% if emp.is_active %}bi-x-circle{% else %}bi-check-circle{% endif %}"></i>
                                     </button>
+                                    <div x-show="confirming"
+                                         x-cloak
+                                         @click.outside="confirming = false"
+                                         class="d-inline-flex align-items-center gap-1 bg-white border border-danger-subtle rounded px-2 py-1 shadow-sm"
+                                         style="font-size: 0.75rem;">
+                                        <span class="text-danger fw-semibold text-nowrap">
+                                            {% if emp.is_active %}Deactivate?{% else %}Activate?{% endif %}
+                                        </span>
+                                        <button type="submit"
+                                                class="btn btn-sm {% if emp.is_active %}btn-danger{% else %}btn-success{% endif %} py-0 px-2 text-nowrap"
+                                                style="font-size: 0.75rem;">
+                                            Yes
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                                @click="confirming = false"
+                                                style="font-size: 0.75rem;"
+                                                title="Cancel">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
                                 </form>
                                 {% endif %}
                             </div>
@@ -119,11 +150,42 @@
                     <a href="{% url 'organizations:employee_edit' emp.pk %}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-pencil"></i> Edit
                     </a>
-                    <form method="post" action="{% url 'organizations:employee_toggle' emp.pk %}" class="d-inline">
+                    <!-- Inline Alpine Confirmation for Mobile Toggle -->
+                    <form method="post"
+                          action="{% url 'organizations:employee_toggle' emp.pk %}"
+                          class="d-inline position-relative"
+                          x-data="{ confirming: false }"
+                          @keydown.escape.window="confirming = false">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm {% if emp.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} confirm-action">
+                        <button type="button"
+                                class="btn btn-sm {% if emp.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                                x-show="!confirming"
+                                @click="confirming = true"
+                                title="{% if emp.is_active %}Deactivate Employee{% else %}Activate Employee{% endif %}"
+                                aria-label="{% if emp.is_active %}Deactivate Employee{% else %}Activate Employee{% endif %}">
                             <i class="bi {% if emp.is_active %}bi-x-circle{% else %}bi-check-circle{% endif %}"></i>
                         </button>
+                        <div x-show="confirming"
+                             x-cloak
+                             @click.outside="confirming = false"
+                             class="d-inline-flex align-items-center gap-1 bg-white border border-danger-subtle rounded px-2 py-1 shadow-sm"
+                             style="font-size: 0.75rem;">
+                            <span class="text-danger fw-semibold text-nowrap">
+                                {% if emp.is_active %}Deactivate?{% else %}Activate?{% endif %}
+                            </span>
+                            <button type="submit"
+                                    class="btn btn-sm {% if emp.is_active %}btn-danger{% else %}btn-success{% endif %} py-0 px-2 text-nowrap"
+                                    style="font-size: 0.75rem;">
+                                Yes
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                    @click="confirming = false"
+                                    style="font-size: 0.75rem;"
+                                    title="Cancel">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
                     </form>
                     {% endif %}
                 </div>

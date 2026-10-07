@@ -40,7 +40,7 @@ class SupplyViewAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
         if self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'FACULTY':
             messages.warning(self.request, "Faculty accounts cannot browse administrative supply management records.")
             return redirect('assignments:my_accountability')
-        return super().handle_no_permission()
+        return super().handle_no_permission()\
 
 
 # ==============================================================================
@@ -54,6 +54,15 @@ class SupplyListView(SupplyViewAccessMixin, ListView):
     template_name = 'supplies/supply_list.html'
     context_object_name = 'supplies'
     paginate_by = 20
+
+    def get_template_names(self):
+        if (
+            self.request.headers.get('HX-Request') == 'true'
+            and self.request.headers.get('HX-History-Restore-Request') != 'true'
+            and self.request.headers.get('HX-Boosted') != 'true'
+        ):
+            return ['supplies/partials/_supply_results.html']
+        return [self.template_name]
 
     def get_queryset(self):
         qs = services.get_annotated_supplies_queryset()

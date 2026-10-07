@@ -1,9 +1,10 @@
 /* ==========================================================================
    CBA IMS - Canonical Design System & Responsive Styles (DESIGN.md)
+   Phase 0: Design System Tokens & Shared Partials
    ========================================================================== */
 
 :root {
-    /* Primary & Brand */
+    /* Primary & Brand (Institutional Navy) */
     --cba-primary: #1e3a8a;
     --cba-primary-hover: #172554;
     --cba-primary-light: #eff6ff;
@@ -16,6 +17,7 @@
     /* Borders */
     --cba-border-subtle: #e2e8f0;
     --cba-border-medium: #cbd5e1;
+    --cba-border-dark: #94a3b8;
     
     /* Typography */
     --cba-text-primary: #0f172a;
@@ -23,29 +25,70 @@
     --cba-text-muted: #64748b;
     --cba-text-inverted: #ffffff;
     
-    /* Semantic Tints & Accents */
-    --cba-accent-neutral: #1e3a8a;
-    --cba-accent-available: #16a34a;
-    --cba-accent-assigned: #0284c7;
-    --cba-accent-warning: #d97706;
-    --cba-accent-critical: #dc2626;
-    --cba-accent-borrowed: #475569;
+    /* Semantic Colors (DESIGN.md Section 2.3) */
+    --cba-status-available-bg: #f0fdf4;
+    --cba-status-available-text: #15803d;
+    --cba-status-available-border: #bbf7d0;
+
+    --cba-status-assigned-bg: #f0f9ff;
+    --cba-status-assigned-text: #0369a1;
+    --cba-status-assigned-border: #bae6fd;
+
+    --cba-status-borrowed-bg: #f1f5f9;
+    --cba-status-borrowed-text: #334155;
+    --cba-status-borrowed-border: #cbd5e1;
+
+    --cba-status-maintenance-bg: #fffbeb;
+    --cba-status-maintenance-text: #b45309;
+    --cba-status-maintenance-border: #fde68a;
+
+    --cba-status-critical-bg: #fef2f2;
+    --cba-status-critical-text: #b91c1c;
+    --cba-status-critical-border: #fecaca;
+
+    --cba-status-transferred-bg: #eef2ff;
+    --cba-status-transferred-text: #4338ca;
+    --cba-status-transferred-border: #c7d2fe;
+
+    --cba-status-archived-bg: #f4f4f5;
+    --cba-status-archived-text: #52525b;
+    --cba-status-archived-border: #d4d4d8;
+
+    /* Danger Button */
+    --cba-danger: #dc2626;
+    --cba-danger-hover: #b91c1c;
     
     /* Focus Ring */
     --cba-focus-ring: 0 0 0 3px rgba(30, 58, 138, 0.15);
+    --cba-focus-ring-danger: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
-/* Global resets & typography */
+/* --- Global Resets & Typography --- */
 body {
     background-color: var(--cba-surface-bg);
     color: var(--cba-text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 
 /* Monospace font for asset identifiers & timestamps */
 .font-mono, .code-tag {
-    font-family: \"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, monospace;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* Reusable Asset/Property Code Identifier */
+.cba-code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cba-primary);
+    background-color: #f1f5f9;
+    padding: 0.125rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--cba-border-subtle);
+    letter-spacing: -0.01em;
+    display: inline-block;
+    white-space: nowrap;
 }
 
 /* Typographic utilities */
@@ -56,13 +99,16 @@ body {
 .tracking-wider { letter-spacing: 0.05em !important; }
 .border-bottom-subtle { border-bottom: 1px solid #f1f5f9 !important; }
 
-/* --- Scrollbar --- */
+/* Custom Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* --- Institutional Action Buttons --- */
+/* ==========================================================================
+   Action Buttons (DESIGN.md Section 2.4)
+   ========================================================================== */
+
 .btn-primary-cba {
     background-color: #1e3a8a !important;
     border: 1px solid #1e3a8a !important;
@@ -74,6 +120,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.4rem;
     text-decoration: none !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -83,6 +130,10 @@ body {
     border-color: #172554 !important;
     color: #ffffff !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.btn-primary-cba:focus-visible {
+    outline: none;
+    box-shadow: var(--cba-focus-ring) !important;
 }
 
 .btn-secondary-cba {
@@ -96,6 +147,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.4rem;
     text-decoration: none !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -106,8 +158,295 @@ body {
     color: #0f172a !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
+.btn-secondary-cba:focus-visible {
+    outline: none;
+    box-shadow: var(--cba-focus-ring) !important;
+}
 
-/* --- Restrained Tiered KPI Cards (DESIGN.md) --- */
+.btn-danger-cba {
+    background-color: #dc2626 !important;
+    border: 1px solid #dc2626 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-decoration: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-danger-cba:hover, .btn-danger-cba:focus {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.btn-danger-cba:focus-visible {
+    outline: none;
+    box-shadow: var(--cba-focus-ring-danger) !important;
+}
+
+.btn-outline-cba {
+    background-color: transparent !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-decoration: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.btn-outline-cba:hover, .btn-outline-cba:focus {
+    background-color: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* ==========================================================================
+   Semantic Status Chips & Badges (DESIGN.md Section 2.3)
+   ========================================================================== */
+
+.cba-status, .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+
+.cba-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* 1. Available / Unassigned / In Stock */
+.status-available, .cba-status-available {
+    background-color: var(--cba-status-available-bg) !important;
+    color: var(--cba-status-available-text) !important;
+    border-color: var(--cba-status-available-border) !important;
+}
+.status-available .cba-status-dot, .cba-status-available .cba-status-dot {
+    background-color: #16a34a;
+}
+
+/* 2. Assigned / In Use */
+.status-assigned, .cba-status-assigned {
+    background-color: var(--cba-status-assigned-bg) !important;
+    color: var(--cba-status-assigned-text) !important;
+    border-color: var(--cba-status-assigned-border) !important;
+}
+.status-assigned .cba-status-dot, .cba-status-assigned .cba-status-dot {
+    background-color: #0284c7;
+}
+
+/* 3. Borrowed / Active Loan */
+.status-borrowed, .cba-status-borrowed {
+    background-color: var(--cba-status-borrowed-bg) !important;
+    color: var(--cba-status-borrowed-text) !important;
+    border-color: var(--cba-status-borrowed-border) !important;
+}
+.status-borrowed .cba-status-dot, .cba-status-borrowed .cba-status-dot {
+    background-color: #475569;
+}
+
+/* 4. Maintenance / In Repair */
+.status-maintenance, .cba-status-maintenance {
+    background-color: var(--cba-status-maintenance-bg) !important;
+    color: var(--cba-status-maintenance-text) !important;
+    border-color: var(--cba-status-maintenance-border) !important;
+}
+.status-maintenance .cba-status-dot, .cba-status-maintenance .cba-status-dot {
+    background-color: #d97706;
+}
+
+/* 5. Critical / Damaged / Overdue / Lost */
+.status-critical, .status-damaged, .status-overdue, .cba-status-critical, .cba-status-danger {
+    background-color: var(--cba-status-critical-bg) !important;
+    color: var(--cba-status-critical-text) !important;
+    border-color: var(--cba-status-critical-border) !important;
+}
+.status-critical .cba-status-dot, .cba-status-critical .cba-status-dot {
+    background-color: #dc2626;
+}
+
+/* 6. Warning / Low Stock / Pending Review */
+.status-warning, .status-low-stock, .cba-status-warning {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+.status-warning .cba-status-dot, .cba-status-warning .cba-status-dot {
+    background-color: #d97706;
+}
+
+/* 7. Transferred / Movement */
+.status-transferred, .cba-status-transferred {
+    background-color: var(--cba-status-transferred-bg) !important;
+    color: var(--cba-status-transferred-text) !important;
+    border-color: var(--cba-status-transferred-border) !important;
+}
+.status-transferred .cba-status-dot, .cba-status-transferred .cba-status-dot {
+    background-color: #4f46e5;
+}
+
+/* 8. Archived / Disposed / Inactive */
+.status-archived, .status-disposed, .status-inactive, .cba-status-archived, .cba-status-muted {
+    background-color: var(--cba-status-archived-bg) !important;
+    color: var(--cba-status-archived-text) !important;
+    border-color: var(--cba-status-archived-border) !important;
+}
+.status-archived .cba-status-dot, .cba-status-archived .cba-status-dot {
+    background-color: #71717a;
+}
+
+/* Condition Badges (DESIGN.md Section 2.3) */
+.condition-new, .cba-condition-new,
+.condition-good, .cba-condition-good {
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0 !important;
+}
+.condition-fair, .cba-condition-fair {
+    background-color: #f0f9ff !important;
+    color: #0369a1 !important;
+    border: 1px solid #bae6fd !important;
+}
+.condition-poor, .cba-condition-poor {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+}
+.condition-unserviceable, .cba-condition-unserviceable {
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fecaca !important;
+}
+
+/* ==========================================================================
+   Page Header & Action Hierarchy
+   ========================================================================== */
+
+.cba-page-header, .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+.cba-page-header .cba-header-title,
+.page-header h1, .page-header .h3 {
+    margin-bottom: 0.15rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--cba-text-primary);
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+}
+.cba-page-header .cba-header-subtitle {
+    margin-bottom: 0;
+    font-size: 0.8125rem;
+    color: var(--cba-text-secondary);
+}
+.cba-page-header .cba-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+@media (max-width: 575.98px) {
+    .cba-page-header, .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .cba-page-header .cba-header-actions {
+        width: 100%;
+    }
+    .cba-page-header .cba-header-actions > .btn,
+    .cba-page-header .cba-header-actions > a {
+        flex: 1 1 auto;
+        min-height: 44px;
+    }
+}
+
+/* ==========================================================================
+   Institutional Panels & Card Components
+   ========================================================================== */
+
+.cba-panel {
+    background: #ffffff;
+    border: 1px solid var(--cba-border-subtle);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+.cba-panel-header, .panel-header-cba {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--cba-border-subtle);
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.cba-panel-title, .panel-title-cba {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cba-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    letter-spacing: -0.01em;
+}
+.cba-panel-title i, .panel-title-cba i {
+    color: var(--cba-text-secondary);
+    margin-right: 0.45rem;
+    font-size: 1rem;
+}
+.cba-panel-body {
+    padding: 1rem;
+}
+.cba-panel-footer {
+    padding: 0.75rem 1rem;
+    background-color: var(--cba-surface-bg);
+    border-top: 1px solid var(--cba-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.panel-link-cba {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--cba-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+.panel-link-cba:hover {
+    color: var(--cba-primary-hover);
+    text-decoration: underline;
+}
+
+/* Restrained KPI Cards (Dashboard Reference) */
 .kpi-card {
     background: #ffffff !important;
     border: 1px solid var(--cba-border-subtle) !important;
@@ -122,7 +461,6 @@ body {
     justify-content: space-between;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
 .kpi-card .kpi-header {
     display: flex;
     align-items: center;
@@ -140,7 +478,6 @@ body {
     font-size: 1.1rem;
     color: #94a3b8;
 }
-
 .kpi-card .kpi-value {
     font-size: 1.75rem;
     font-weight: 700;
@@ -166,8 +503,6 @@ body {
     display: inline-flex;
     align-items: center;
 }
-
-/* Interactive KPI Card Affordance (Restrained, No translation jumps) */
 .kpi-card.kpi-interactive {
     cursor: pointer;
 }
@@ -178,8 +513,6 @@ body {
 .kpi-card.kpi-interactive:hover .kpi-link-label {
     text-decoration: underline;
 }
-
-/* Mobile adjustments for KPI Grid */
 @media (max-width: 575.98px) {
     .kpi-card {
         padding: 0.85rem;
@@ -196,81 +529,20 @@ body {
     }
 }
 
-/* --- Status Indicators & Amber Badges --- */
-.status-indicator {
+/* Status Indicators & Activity Dots */
+.status-indicator, .activity-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     display: inline-block;
     flex-shrink: 0;
-}
-.bg-amber-soft {
-    background-color: #fef3c7 !important;
-}
-.text-amber-dark {
-    color: #92400e !important;
-}
-.border-warning-subtle {
-    border-color: #fde68a !important;
-}
-
-/* --- Audit Ledger & Activity Dots --- */
-.activity-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: inline-block;
 }
 .activity-dot.badge-theme-success { background-color: #16a34a; }
 .activity-dot.badge-theme-warning { background-color: #d97706; }
 .activity-dot.badge-theme-danger { background-color: #dc2626; }
 .activity-dot.badge-theme-info { background-color: #0284c7; }
 
-/* Legacy stat-card compatibility (kept for other pages until refactored) */
-.stat-card {
-    border-radius: 6px;
-    border: 1px solid var(--cba-border-subtle);
-    box-shadow: 0 1px 2px 0 rgba(0,0,0,.04);
-}
-
-/* --- Panel & Card Headers --- */
-.panel-header-cba {
-    padding: 0.65rem 0.85rem;
-    border-bottom: 1px solid var(--cba-border-subtle);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #ffffff;
-}
-.panel-title-cba {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--cba-text-primary);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    letter-spacing: -0.01em;
-}
-.panel-title-cba i {
-    color: var(--cba-text-secondary);
-    margin-right: 0.4rem;
-    font-size: 0.95rem;
-}
-.panel-link-cba {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--cba-primary);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-}
-.panel-link-cba:hover {
-    color: var(--cba-primary-hover);
-    text-decoration: underline;
-}
-
-/* --- Charts & Visual Analytics --- */
+/* Charts & Visual Analytics */
 .chart-card-body {
     height: 180px;
     padding: 0.75rem;
@@ -283,34 +555,70 @@ body {
     width: 100%;
 }
 
-/* --- Tables --- */
-.table th {
+/* Legacy stat-card compatibility */
+.stat-card {
+    border-radius: 6px;
+    border: 1px solid var(--cba-border-subtle);
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,.04);
+}
+
+/* ==========================================================================
+   Standardized Data Tables & Responsive Records
+   ========================================================================== */
+
+.cba-table-container {
+    background: #ffffff;
+    border: 1px solid var(--cba-border-subtle);
+    border-radius: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1.25rem;
+}
+.cba-data-table, .cba-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+.cba-data-table th, .cba-table th, .table th {
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     color: var(--cba-text-secondary);
     background-color: var(--cba-surface-subtle);
-    white-space: nowrap;
+    padding: 0.65rem 0.85rem;
     border-bottom: 1px solid var(--cba-border-medium);
+    white-space: nowrap;
+    vertical-align: middle;
 }
-.table td {
+.cba-data-table td, .cba-table td, .table td {
+    padding: 0.7rem 0.85rem;
     vertical-align: middle;
     color: var(--cba-text-primary);
-    font-size: 0.875rem;
+    font-size: 0.84rem;
     border-bottom: 1px solid var(--cba-border-subtle);
+}
+.cba-data-table tbody tr:last-child td,
+.cba-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.cba-data-table tbody tr:hover td,
+.cba-table tbody tr:hover td,
+.table-hover tbody tr:hover td {
+    background-color: #f8fafc;
 }
 .table-responsive {
     -webkit-overflow-scrolling: touch;
 }
 
-/* --- Mobile card list (alternative to table) --- */
+/* Mobile Card List (Used when horizontal table scrolling degrades usability) */
 .mobile-card-list .mobile-card {
-    background: #fff;
+    background: #ffffff;
     border: 1px solid var(--cba-border-subtle);
     border-radius: 6px;
     padding: 0.85rem;
     margin-bottom: 0.65rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
 }
 .desktop-table { display: block; }
 .mobile-card-list { display: none; }
@@ -319,49 +627,56 @@ body {
     .mobile-card-list { display: block !important; }
 }
 
-/* --- Forms --- */
-.form-control:focus, .form-select:focus {
-    border-color: var(--cba-primary);
-    box-shadow: var(--cba-focus-ring);
-}
-@media (max-width: 767.98px) {
-    .form-actions {
-        position: sticky;
-        bottom: 0;
-        background: #fff;
-        padding: 0.75rem 0;
-        border-top: 1px solid var(--cba-border-subtle);
-        margin-top: 1rem;
-        z-index: 10;
-    }
-    .form-actions .btn {
-        width: 100%;
-        min-height: 44px;
-        margin-bottom: 0.5rem;
-    }
-}
+/* ==========================================================================
+   Search & Multi-Filter Toolbar
+   ========================================================================== */
 
-/* --- Search & Filter Bar --- */
-.search-filter-bar {
+.cba-filter-bar, .search-filter-bar {
+    background: #ffffff;
+    border: 1px solid var(--cba-border-subtle);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
 }
+.cba-filter-search {
+    flex: 1 1 240px;
+    min-width: 200px;
+}
+.cba-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+.cba-filter-controls select,
+.cba-filter-controls .form-select-sm {
+    min-width: 130px;
+    width: auto;
+}
 @media (max-width: 767.98px) {
-    .search-filter-bar {
+    .cba-filter-bar, .search-filter-bar {
         flex-direction: column;
+        align-items: stretch;
     }
-    .search-filter-bar .search-input {
+    .search-filter-bar .search-input,
+    .cba-filter-search {
         width: 100% !important;
     }
+    .cba-filter-controls,
     .search-filter-bar .filter-controls {
         width: 100%;
         flex-wrap: wrap;
     }
+    .cba-filter-controls > *,
     .search-filter-bar .filter-controls > * {
-        flex: 1;
+        flex: 1 1 120px;
         min-width: 120px;
     }
 }
-
 .filter-collapse-btn { display: none; }
 @media (max-width: 767.98px) {
     .filter-collapse-btn { display: inline-flex; }
@@ -369,58 +684,363 @@ body {
     .filter-panel.show { display: block; }
 }
 
-/* --- Empty States --- */
-.empty-state {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: var(--cba-text-secondary);
+/* ==========================================================================
+   Detail Metadata Definition Grids
+   ========================================================================== */
+
+.cba-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 0.75rem 0;
 }
-.empty-state i {
-    font-size: 2.25rem;
-    margin-bottom: 0.75rem;
+.cba-meta-item {
+    display: flex;
+    flex-direction: column;
+}
+.cba-meta-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: var(--cba-text-muted);
-    opacity: 0.6;
+    margin-bottom: 0.2rem;
 }
-.empty-state p {
+.cba-meta-value {
     font-size: 0.875rem;
-    margin-bottom: 0;
+    font-weight: 600;
+    color: var(--cba-text-primary);
+    word-break: break-word;
 }
 
-/* --- Page Header Layout --- */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+/* ==========================================================================
+   Form Controls, Sections & Action Footers
+   ========================================================================== */
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--cba-primary);
+    box-shadow: var(--cba-focus-ring);
 }
-@media (max-width: 575.98px) {
-    .page-header {
-        flex-direction: column;
+.form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cba-text-primary);
+    margin-bottom: 0.35rem;
+}
+.form-text {
+    font-size: 0.75rem;
+    color: var(--cba-text-muted);
+}
+.cba-form-section {
+    padding: 1.15rem 0;
+    border-bottom: 1px solid var(--cba-border-subtle);
+}
+.cba-form-section:last-child {
+    border-bottom: none;
+}
+.cba-form-section-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--cba-text-primary);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+}
+.cba-form-section-desc {
+    font-size: 0.75rem;
+    color: var(--cba-text-secondary);
+    margin-bottom: 0.85rem;
+}
+
+/* Standard Form Actions (Natural flow - not fixed by default) */
+.cba-form-actions, .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cba-border-subtle);
+}
+
+/* Opt-in Sticky Actions for Long Transactional Forms Only */
+.cba-form-sticky-actions, .form-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    background: #ffffff;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--cba-border-subtle);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .form-actions:not(.form-actions-sticky) {
+        flex-direction: column-reverse;
         align-items: stretch;
     }
-    .page-header .btn {
+    .form-actions:not(.form-actions-sticky) .btn,
+    .form-actions:not(.form-actions-sticky) a {
         width: 100%;
+        min-height: 44px;
+        margin-bottom: 0.4rem;
+    }
+    .cba-form-sticky-actions .btn,
+    .form-actions-sticky .btn {
+        flex: 1 1 auto;
+        min-height: 44px;
     }
 }
 
-/* --- Accessibility & Focus State --- */
+/* ==========================================================================
+   Empty States
+   ========================================================================== */
+
+.cba-empty-state, .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--cba-text-secondary);
+}
+.cba-empty-state-icon, .empty-state i {
+    font-size: 2.25rem;
+    margin-bottom: 0.65rem;
+    color: var(--cba-text-muted);
+    opacity: 0.5;
+    display: block;
+}
+.cba-empty-state-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--cba-text-primary);
+    margin-bottom: 0.25rem;
+}
+.cba-empty-state-desc, .empty-state p {
+    font-size: 0.8125rem;
+    color: var(--cba-text-secondary);
+    max-width: 400px;
+    margin: 0 auto 1rem auto;
+}
+
+/* ==========================================================================
+   System Alerts & Messages (DESIGN.md Section 2.3)
+   ========================================================================== */
+
+.cba-alert {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    border: 1px solid transparent;
+    margin-bottom: 0.75rem;
+}
+.cba-alert .cba-alert-icon {
+    font-size: 1rem;
+    line-height: 1.25;
+    flex-shrink: 0;
+}
+.cba-alert .btn-close {
+    padding: 0.85rem;
+    font-size: 0.75rem;
+}
+.cba-alert-success, .alert-success {
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+}
+.cba-alert-info, .alert-info {
+    background-color: #f0f9ff !important;
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+}
+.cba-alert-warning, .alert-warning {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+.cba-alert-danger, .cba-alert-error, .alert-danger {
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+
+/* ==========================================================================
+   Pagination Controls
+   ========================================================================== */
+
+.cba-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.25rem 0 0.5rem 0;
+    flex-wrap: wrap;
+}
+.cba-pagination .page-item .page-link {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--cba-text-secondary);
+    background-color: #ffffff;
+    border: 1px solid var(--cba-border-medium);
+    border-radius: 4px;
+    padding: 0.35rem 0.7rem;
+    min-height: 36px;
+    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.cba-pagination .page-item .page-link:hover {
+    background-color: var(--cba-surface-subtle);
+    color: var(--cba-text-primary);
+    border-color: #94a3b8;
+}
+.cba-pagination .page-item.active .page-link {
+    background-color: var(--cba-primary) !important;
+    border-color: var(--cba-primary) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+.cba-pagination .page-item.disabled .page-link {
+    background-color: #f8fafc;
+    color: #94a3b8;
+    border-color: var(--cba-border-subtle);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ==========================================================================
+   Modal Dialogs
+   ========================================================================== */
+
+.cba-modal .modal-content {
+    border-radius: 6px;
+    border: 1px solid var(--cba-border-medium);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+.cba-modal .modal-header {
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--cba-border-subtle);
+    background-color: #ffffff;
+}
+.cba-modal .modal-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--cba-text-primary);
+}
+.cba-modal .modal-body {
+    padding: 1.15rem;
+    font-size: 0.875rem;
+    color: var(--cba-text-primary);
+}
+.cba-modal .modal-footer {
+    padding: 0.75rem 1.15rem;
+    border-top: 1px solid var(--cba-border-subtle);
+    background-color: var(--cba-surface-bg);
+}
+
+/* ==========================================================================
+   Institutional Document Print Layouts & Official Brand Usage
+   ========================================================================== */
+
+.cba-print-header {
+    text-align: center;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #0f172a;
+}
+.cba-print-institution {
+    font-size: 13pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #000000;
+    margin-bottom: 2px;
+}
+.cba-print-college {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1px;
+}
+.cba-print-campus {
+    font-size: 9pt;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+.cba-print-doc-title {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 6px;
+    display: inline-block;
+    padding: 2px 12px;
+    border-bottom: 1px solid #000000;
+}
+.cba-signature-box {
+    page-break-inside: avoid;
+    margin-top: 2rem;
+    padding-top: 1rem;
+}
+.cba-signature-line {
+    border-bottom: 1px solid #000000;
+    width: 220px;
+    margin: 3.5rem auto 0.35rem auto;
+}
+
+/* Official Logo Asset Display (Aspect-ratio preserved, no distortion) */
+.cba-brand-asset {
+    max-height: 48px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+.cba-brand-asset-print {
+    max-height: 64px;
+    width: auto;
+    object-fit: contain;
+}
+.cba-brand-asset-login {
+    max-height: 72px;
+    width: auto;
+    object-fit: contain;
+    margin: 0 auto 1rem auto;
+}
+
+/* ==========================================================================
+   Accessibility & Focus State
+   ========================================================================== */
+
 *:focus-visible {
     outline: 2px solid var(--cba-primary);
     outline-offset: 2px;
 }
 .sr-only {
-    position: absolute; width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0);
-    white-space: nowrap; border: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
 }
-
-/* Loading spinner */
 .spinner-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.8);
-    display: flex; align-items: center; justify-content: center;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 9999;
 }

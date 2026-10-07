@@ -372,6 +372,134 @@ class AssetViewTests(TestCase):
         self.assertContains(res, self.asset_acct.asset_code)
         self.assertNotContains(res, self.asset_ba.asset_code)
 
+    def test_asset_list_htmx_partial_response(self):
+        self.client.login(username='admin_inv', password='Password123!')
+        
+        # Standard GET returns full page
+        res_full = self.client.get(reverse('inventory:asset_list'))
+        self.assertEqual(res_full.status_code, 200)
+        self.assertTemplateUsed(res_full, 'inventory/asset_list.html')
+        self.assertTemplateUsed(res_full, 'inventory/partials/_asset_results.html')
+        self.assertContains(res_full, 'id="assetFilterForm"')
+        self.assertContains(res_full, 'id="asset-results-container"')
+
+        # HTMX GET request returns ONLY the partial template
+        res_htmx = self.client.get(
+            reverse('inventory:asset_list'),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res_htmx.status_code, 200)
+        self.assertTemplateUsed(res_htmx, 'inventory/partials/_asset_results.html')
+        self.assertTemplateNotUsed(res_htmx, 'inventory/asset_list.html')
+        self.assertNotContains(res_htmx, 'id="assetFilterForm"')
+        self.assertContains(res_htmx, self.asset_acct.asset_code)
+        self.assertContains(res_htmx, self.asset_ba.asset_code)
+
+    def test_asset_list_htmx_history_restore_returns_full_page(self):
+        self.client.login(username='admin_inv', password='Password123!')
+        res_restore = self.client.get(
+            reverse('inventory:asset_list'),
+            HTTP_HX_REQUEST='true',
+            HTTP_HX_HISTORY_RESTORE_REQUEST='true'
+        )
+        self.assertEqual(res_restore.status_code, 200)
+        self.assertTemplateUsed(res_restore, 'inventory/asset_list.html')
+        self.assertContains(res_restore, 'id="assetFilterForm"')
+
+    def test_asset_list_htmx_search_filtering(self):
+        self.client.login(username='admin_inv', password='Password123!')
+
+        # Live search for ThinkPad
+        res = self.client.get(
+            reverse('inventory:asset_list') + '?q=ThinkPad',
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, self.asset_acct.asset_code)
+        self.assertNotContains(res, self.asset_ba.asset_code)
+
+    def test_asset_list_htmx_dropdown_filtering(self):
+        self.client.login(username='admin_inv', password='Password123!')
+
+        # Filter by department BA
+        res = self.client.get(
+            f"{reverse('inventory:asset_list')}?department={self.dept_ba.pk}",
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, self.asset_ba.asset_code)
+        self.assertNotContains(res, self.asset_acct.asset_code)
+
+    def test_asset_list_htmx_empty_state_without_table(self):
+        self.client.login(username='admin_inv', password='Password123!')
+
+        # Search for non-existent asset
+        res = self.client.get(
+            reverse('inventory:asset_list') + '?q=NON_EXISTENT_QUERY_XYZ',
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'No Assets Found')
+        self.assertContains(res, 'Clear Filters')
+        self.assertNotContains(res, '<table')
+        self.assertNotContains(res, '<thead')
+
+    def test_asset_list_htmx_scoping(self):
+        # Dept Chair scoping preserved under HTMX
+        self.client.login(username='chair_acct', password='Password123!')
+        res_chair = self.client.get(
+            reverse('inventory:asset_list'),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res_chair.status_code, 200)
+        self.assertContains(res_chair, self.asset_acct.asset_code)
+        self.assertNotContains(res_chair, self.asset_ba.asset_code)
+
+        # Faculty 403 preserved under HTMX
+        self.client.login(username='faculty_user', password='Password123!')
+        res_fac = self.client.get(
+            reverse('inventory:asset_list'),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res_fac.status_code, 403)
+
+    def test_asset_list_htmx_pagination(self):
+        self.client.login(username='admin_inv', password='Password123!')
+        # Bulk create 20 assets to trigger pagination (paginate_by is 15)
+        Asset.objects.bulk_create([
+            Asset(
+                item_name=f'Bulk Asset {i}',
+                asset_code=f'CBA-IT-99{i:03d}',
+                category=self.cat_it,
+                brand=self.brand_lenovo,
+                department=self.dept_acct,
+                current_location=self.loc_acct,
+                acquisition_cost=Decimal('1000.00'),
+                condition=Asset.Condition.GOOD,
+                status=Asset.Status.AVAILABLE,
+                created_by=self.admin
+            )
+            for i in range(20)
+        ])
+
+        # Page 1
+        res_p1 = self.client.get(
+            reverse('inventory:asset_list') + '?page=1',
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res_p1.status_code, 200)
+        self.assertContains(res_p1, 'Showing 1–15 of 22 assets')
+        self.assertContains(res_p1, 'hx-target="#asset-results-container"')
+        self.assertContains(res_p1, 'page=2')
+
+        # Page 2
+        res_p2 = self.client.get(
+            reverse('inventory:asset_list') + '?page=2',
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(res_p2.status_code, 200)
+        self.assertContains(res_p2, 'Showing 16–22 of 22 assets')
+
 
 class CategoryAndBrandViewsTests(TestCase):
     def setUp(self):

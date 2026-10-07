@@ -1,9 +1,9 @@
 // CBA IMS Service Worker
 // SECURITY: This worker caches ONLY static assets (CSS, JS, icons).
-// Authenticated HTML responses are NEVER cached to prevent
-// private data from appearing in offline mode for other users.
+// Authenticated HTML responses and HTMX partial fragments are NEVER cached
+// to prevent private data from appearing in offline mode or leaking across users.
 
-const VERSION = 'cba-ims-v3';
+const VERSION = 'cba-ims-v4';
 const CACHE_NAME = `${VERSION}-static`;
 const OFFLINE_URL = '/static/offline.html';
 
@@ -13,6 +13,8 @@ const PRECACHE_ASSETS = [
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
+    '/static/vendor/htmx/htmx.min.js',
+    '/static/vendor/alpine/alpine.min.js',
 ];
 
 // Install: pre-cache only static assets
@@ -44,12 +46,21 @@ self.addEventListener('activate', function(event) {
 });
 
 // Fetch strategy:
-// - Navigation (HTML): NETWORK ONLY, fall back to offline.html on failure
-// - /static/ and CDN assets: cache-first
+// - Non-GET: straight network (skipped by SW)
+// - HTMX fragment requests (HX-Request header): straight network (never cached)
+// - Navigation (HTML full page): NETWORK ONLY, fall back to offline.html on failure
+// - /static/ and CDN assets: cache-first with network fallback
 // - Everything else: network only
 self.addEventListener('fetch', function(event) {
     // Skip non-GET requests entirely
     if (event.request.method !== 'GET') return;
+
+    // SECURITY: HTMX fragment requests (HX-Request header) must NEVER be cached.
+    // They return user-specific, authenticated partial HTML fragments.
+    if (event.request.headers.get('HX-Request')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
 
     const url = new URL(event.request.url);
 

@@ -1,0 +1,231 @@
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="bi bi-archive text-primary me-2"></i>Supplies Inventory
+            <span class="badge bg-primary ms-1">{{ page_obj.paginator.count|default:0 }}</span>
+        </h6>
+        <div class="small text-muted">
+            Derived from transaction history
+        </div>
+    </div>
+
+    {% if supplies %}
+    <!-- Desktop Table View -->
+    <div class="desktop-table">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Supply Code</th>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Brand</th>
+                        <th class="text-center">Current Stock</th>
+                        <th class="text-center">Reorder Level</th>
+                        <th class="text-center">Stock Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in supplies %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'supplies:supply_detail' s.supply_code %}" class="font-monospace fw-bold text-decoration-none">
+                                {{ s.supply_code }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ s.item_name }}</div>
+                            {% if not s.is_active %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ s.category.name }}</span></td>
+                        <td>{{ s.brand.name|default:"-" }}</td>
+                        <td class="text-center">
+                            <span class="fs-6 fw-bold {% if s.calculated_stock <= 0 %}text-danger{% elif s.calculated_stock <= s.reorder_level %}text-warning{% else %}text-success{% endif %}">
+                                {{ s.calculated_stock }}
+                            </span>
+                            <small class="text-muted">{{ s.get_unit_display }}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-muted">{{ s.reorder_level }}</span>
+                            <small class="text-muted">{{ s.get_unit_display }}</small>
+                        </td>
+                        <td class="text-center">
+                            {% if s.calculated_stock <= 0 %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+                            {% elif s.calculated_stock <= s.reorder_level %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>
+                            {% else %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>In Stock</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="action-btn-group justify-content-end">
+                                <a href="{% url 'supplies:supply_detail' s.supply_code %}" class="btn btn-sm btn-outline-secondary" title="View Supply Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if request.user.is_admin %}
+                                <a href="{% url 'supplies:stock_in_specific' s.supply_code %}" class="btn btn-sm btn-outline-success" title="Stock In">
+                                    <i class="bi bi-box-arrow-in-down"></i>
+                                </a>
+                                <a href="{% url 'supplies:stock_out_specific' s.supply_code %}" class="btn btn-sm btn-outline-primary" title="Stock Out">
+                                    <i class="bi bi-box-arrow-up"></i>
+                                </a>
+                                <a href="{% url 'supplies:supply_edit' s.supply_code %}" class="btn btn-sm btn-outline-secondary" title="Edit Definition">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card List View -->
+    <div class="mobile-card-list p-3">
+        {% for s in supplies %}
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="font-monospace small text-primary fw-bold">{{ s.supply_code }}</span>
+                    <h6 class="fw-bold mb-0 mt-1">{{ s.item_name }}</h6>
+                </div>
+                <div>
+                    {% if s.calculated_stock <= 0 %}
+                        <span class="badge bg-danger">Out of Stock</span>
+                    {% elif s.calculated_stock <= s.reorder_level %}
+                        <span class="badge bg-warning text-dark">Low Stock</span>
+                    {% else %}
+                        <span class="badge bg-success">In Stock</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-meta mb-2">
+                <span><i class="bi bi-tag me-1"></i>{{ s.category.name }}</span>
+                {% if s.brand %}<span><i class="bi bi-bookmark me-1"></i>{{ s.brand.name }}</span>{% endif %}
+            </div>
+
+            <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <small class="text-muted d-block">On-Hand Stock</small>
+                    <span class="fs-5 fw-bold {% if s.calculated_stock <= 0 %}text-danger{% elif s.calculated_stock <= s.reorder_level %}text-warning{% else %}text-success{% endif %}">
+                        {{ s.calculated_stock }}
+                    </span>
+                    <small class="text-muted">{{ s.get_unit_display }}</small>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">Reorder At</small>
+                    <span class="fw-semibold text-secondary">{{ s.reorder_level }}</span>
+                    <small class="text-muted">{{ s.get_unit_display }}</small>
+                </div>
+            </div>
+
+            <div class="card-actions d-flex gap-2">
+                <a href="{% url 'supplies:supply_detail' s.supply_code %}" class="btn btn-sm btn-outline-secondary flex-fill">
+                    <i class="bi bi-eye me-1"></i> Details
+                </a>
+                {% if request.user.is_admin %}
+                <a href="{% url 'supplies:stock_in_specific' s.supply_code %}" class="btn btn-sm btn-outline-success flex-fill">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> In
+                </a>
+                <a href="{% url 'supplies:stock_out_specific' s.supply_code %}" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="bi bi-box-arrow-up me-1"></i> Out
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Scoped HTMX Pagination -->
+    {% if is_paginated and page_obj.has_other_pages %}
+    <div class="card-footer bg-white py-3">
+        <nav aria-label="Supplies inventory pagination"
+             hx-target="#supply-results-container"
+             hx-push-url="true"
+             hx-indicator="#supply-loading-indicator">
+            <ul class="pagination cba-pagination justify-content-center mb-0 flex-wrap">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                           hx-get="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                           aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item d-none d-sm-inline">
+                            <a class="page-link"
+                               href="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}"
+                               hx-get="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Mobile friendly indicator -->
+                <li class="page-item disabled d-sm-none">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                           hx-get="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}"
+                           aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Institutional Empty State (No Table Rendered) -->
+    <div class="empty-state py-5 text-center">
+        <i class="bi bi-archive text-muted fs-1 mb-2"></i>
+        <h5 class="fw-bold cba-empty-state-title">No Supplies Found</h5>
+        {% if request.GET.q or request.GET.category or request.GET.brand or request.GET.stock_status or request.GET.status %}
+            <p class="text-muted mb-3 cba-empty-state-desc">No consumable supply records match your current filter parameters.</p>
+            <a href="{% url 'supplies:supply_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle me-1"></i> Clear Filters
+            </a>
+        {% else %}
+            <p class="text-muted mb-3 cba-empty-state-desc">No consumable supply records are registered in the inventory.</p>
+            {% if request.user.is_admin %}
+                <a href="{% url 'supplies:supply_create' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Register First Supply Item
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

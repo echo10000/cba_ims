@@ -382,7 +382,7 @@ class SupplyServiceAndAuditTests(SupplyBaseTestCase):
             created_by=self.admin_user
         )
         self.assertTrue(new_sup.supply_code.startswith('CBA-SUP-PAPER-'))
-        self.assertTrue(AuditLog.objects.filter(action='SUPPLY_CREATED').exists())
+        self.assertTrue(AuditLog.objects.filter(action='SUPPLY_CREATED').exists())\
 
         services.update_supply(new_sup, updated_by=self.admin_user, reorder_level=8)
         new_sup.refresh_from_db()
@@ -402,7 +402,7 @@ class SupplyRBACTests(SupplyBaseTestCase):
         self.client.force_login(self.admin_user)
 
         # GET checks
-        urls = [
+        urls = [\
             reverse('supplies:supply_list'),
             reverse('supplies:supply_detail', kwargs={'supply_code': self.paper.supply_code}),
             reverse('supplies:supply_create'),
@@ -523,6 +523,190 @@ class SupplyViewTests(SupplyBaseTestCase):
         resp_cat = self.client.get(reverse('supplies:supply_list'), {'category': self.cat_print.pk})
         self.assertContains(resp_cat, 'Black Ink 003')
         self.assertNotContains(resp_cat, 'Bond Paper A4')
+
+    def test_supply_list_htmx_partial_response(self):
+        """Standard GET returns full page shell; HTMX GET returns only the partial."""
+        # 1. Normal GET
+        resp_full = self.client.get(reverse('supplies:supply_list'))
+        self.assertEqual(resp_full.status_code, 200)
+        self.assertTemplateUsed(resp_full, 'supplies/supply_list.html')
+        self.assertTemplateUsed(resp_full, 'supplies/partials/_supply_results.html')
+        self.assertContains(resp_full, 'id="supplyFilterForm"')
+        self.assertContains(resp_full, 'id="supply-results-container"')
+
+        # 2. HTMX GET
+        resp_htmx = self.client.get(
+            reverse('supplies:supply_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_htmx.status_code, 200)
+        self.assertTemplateUsed(resp_htmx, 'supplies/partials/_supply_results.html')
+        self.assertTemplateNotUsed(resp_htmx, 'supplies/supply_list.html')
+        self.assertNotContains(resp_htmx, 'id="supplyFilterForm"')
+        self.assertContains(resp_htmx, 'desktop-table')
+        self.assertContains(resp_htmx, 'mobile-card-list')
+
+    def test_supply_list_htmx_history_restore_returns_full_page(self):
+        """Browser back/forward cache restore sends HX-History-Restore-Request and gets full page."""
+        resp = self.client.get(
+            reverse('supplies:supply_list'),
+            headers={'hx-request': 'true', 'hx-history-restore-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'supplies/supply_list.html')
+        self.assertContains(resp, 'id="supplyFilterForm"')
+
+    def test_supply_list_htmx_search_filtering(self):
+        """HTMX search filters supply catalog by query."""
+        stapler = Supply.objects.create(
+            item_name='Heavy Duty Stapler',
+            category=self.cat_paper,
+            brand=self.brand_pilot,
+            unit=Supply.Unit.PIECE,
+            created_by=self.admin_user
+        )
+        resp = self.client.get(
+            reverse('supplies:supply_list'),
+            {'q': 'Heavy Duty'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Heavy Duty Stapler')
+        self.assertNotContains(resp, 'Bond Paper A4')
+
+    def test_supply_list_htmx_filters_and_combination(self):
+        """HTMX filter dropdowns (category, brand, stock_status, status) filter correctly."""
+        toner = Supply.objects.create(
+            item_name='HP Laser Toner',
+            category=self.cat_print,
+            brand=self.brand_pilot,
+            unit=Supply.Unit.CARTRIDGE,
+            reorder_level=5,
+            is_active=True,
+            created_by=self.admin_user
+        )
+        inactive_paper = Supply.objects.create(
+            item_name='Discontinued Notebook',
+            category=self.cat_paper,
+            unit=Supply.Unit.PIECE,
+            reorder_level=5,
+            is_active=False,
+            created_by=self.admin_user
+        )
+        # Give toner some stock so it is IN_STOCK (15 > 5)
+        services.stock_in(toner, quantity=15, processed_by=self.admin_user)
+
+        # 1. Filter by category
+        resp_cat = self.client.get(
+            reverse('supplies:supply_list'),
+            {'category': self.cat_print.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertContains(resp_cat, 'HP Laser Toner')
+        self.assertNotContains(resp_cat, 'Bond Paper A4')
+
+        # 2. Filter by status (inactive)
+        resp_status = self.client.get(
+            reverse('supplies:supply_list'),
+            {'status': 'inactive'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertContains(resp_status, 'Discontinued Notebook')
+        self.assertNotContains(resp_status, 'HP Laser Toner')
+
+        # 3. Filter by stock_status (IN_STOCK vs OUT_OF_STOCK)
+        resp_stock = self.client.get(
+            reverse('supplies:supply_list'),
+            {'stock_status': 'IN_STOCK'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertContains(resp_stock, 'HP Laser Toner')
+        self.assertNotContains(resp_stock, 'Bond Paper A4')  # initial paper has 0 stock
+
+        # 4. Combined filters: category + brand + stock_status
+        resp_combined = self.client.get(
+            reverse('supplies:supply_list'),
+            {
+                'category': self.cat_print.pk,
+                'brand': self.brand_pilot.pk,
+                'stock_status': 'IN_STOCK',
+            },
+            headers={'hx-request': 'true'}
+        )
+        self.assertContains(resp_combined, 'HP Laser Toner')
+        self.assertNotContains(resp_combined, 'Discontinued Notebook')
+        self.assertNotContains(resp_combined, 'Bond Paper A4')
+
+    def test_supply_list_htmx_empty_state_without_table(self):
+        """When zero supplies match, renders institutional empty state and avoids table."""
+        resp = self.client.get(
+            reverse('supplies:supply_list'),
+            {'q': 'NON_EXISTENT_SUPPLY_QUERY_XYZ'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'No Supplies Found')
+        self.assertContains(resp, 'Clear Filters')
+        self.assertNotContains(resp, '<table')
+        self.assertNotContains(resp, '<thead')
+
+    def test_supply_list_htmx_scoping_and_rbac(self):
+        """Dean and Dept Chair receive 200 via HTMX; Faculty is redirected to accountability."""
+        # 1. Dean
+        self.client.force_login(self.dean_user)
+        resp_dean = self.client.get(
+            reverse('supplies:supply_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_dean.status_code, 200)
+
+        # 2. Dept Chair
+        self.client.force_login(self.chair_user)
+        resp_chair = self.client.get(
+            reverse('supplies:supply_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_chair.status_code, 200)
+
+        # 3. Faculty (Redirected by SupplyViewAccessMixin)
+        self.client.force_login(self.faculty_user)
+        resp_fac = self.client.get(
+            reverse('supplies:supply_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertRedirects(resp_fac, reverse('assignments:my_accountability'))
+
+    def test_supply_list_htmx_pagination(self):
+        """Pagination under HTMX preserves search parameters and returns scoped pages."""
+        # Create 25 additional supplies to exceed paginate_by = 20
+        for i in range(25):
+            Supply.objects.create(
+                item_name=f'Bulk Item {i:02d}',
+                category=self.cat_paper,
+                unit=Supply.Unit.PIECE,
+                created_by=self.admin_user
+            )
+
+        resp = self.client.get(
+            reverse('supplies:supply_list'),
+            {'page': 1, 'category': self.cat_paper.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['is_paginated'])
+        self.assertContains(resp, 'Page 1 of')
+        self.assertContains(resp, f'category={self.cat_paper.pk}')
+        self.assertContains(resp, 'hx-target="#supply-results-container"')
+        self.assertContains(resp, 'hx-push-url="true"')
+
+        # Page 2
+        resp_page2 = self.client.get(
+            reverse('supplies:supply_list'),
+            {'page': 2, 'category': self.cat_paper.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_page2.status_code, 200)
+        self.assertEqual(resp_page2.context['page_obj'].number, 2)
 
     def test_stock_in_post_view(self):
         """Posting valid data to StockInView creates transaction and updates balance."""

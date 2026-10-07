@@ -51,6 +51,15 @@ class AssetListView(InventoryAccessMixin, ListView):
     context_object_name = 'assets'
     paginate_by = 15
 
+    def get_template_names(self):
+        if (
+            self.request.headers.get('HX-Request') == 'true'
+            and self.request.headers.get('HX-History-Restore-Request') != 'true'
+            and self.request.headers.get('HX-Boosted') != 'true'
+        ):
+            return ['inventory/partials/_asset_results.html']
+        return [self.template_name]
+
     def get_queryset(self):
         user = self.request.user
         qs = Asset.objects.select_related(

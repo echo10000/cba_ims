@@ -1,16 +1,21 @@
 {% if messages %}
-<div class="messages-container my-3">
+<div class="messages-container my-3" aria-live="polite">
     {% for message in messages %}
-        {% if message.tags == 'error' %}
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        {% elif message.tags %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {% else %}
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-        {% endif %}
-            
-            {{ message }}
-            
+        <div class="alert {% if message.tags == 'error' or message.tags == 'danger' %}alert-danger cba-alert-danger{% elif message.tags == 'success' %}alert-success cba-alert-success{% elif message.tags == 'warning' %}alert-warning cba-alert-warning{% else %}alert-info cba-alert-info{% endif %} cba-alert alert-dismissible fade show" role="alert">
+            <span class="cba-alert-icon">
+                {% if message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                {% else %}
+                    <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+                {% endif %}
+            </span>
+            <div class="cba-alert-content flex-grow-1">
+                {{ message }}
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     {% endfor %}
