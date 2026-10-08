@@ -1,0 +1,231 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}Student Equipment Reservations — CBA IMS{% endblock %}</title>
+
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+
+    <!-- Bootstrap 5.3.0 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons 1.10.5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS (DESIGN.md v2.0 Design System) -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=3.2">
+
+    <!-- Core Frontend Interactivity Libraries -->
+    <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
+    <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        [x-cloak] { display: none !important; }
+
+        :root {
+            --cba-canvas-bg: #f8fafc;
+            --cba-surface-card: #ffffff;
+            --cba-surface-subtle: #f1f5f9;
+            --cba-surface-hover: #f8fafc;
+            --cba-primary: #1d4ed8;
+            --cba-primary-hover: #1e40af;
+            --cba-primary-light: #eff6ff;
+            --cba-border-subtle: #e2e8f0;
+            --cba-border-medium: #cbd5e1;
+            --cba-border-focus: #2563eb;
+            --cba-text-primary: #0f172a;
+            --cba-text-secondary: #475569;
+            --cba-text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--cba-canvas-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--cba-text-primary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .offcanvas:not(.show):not(.showing) {
+            display: none !important;
+        }
+
+        /* Student Portal Header */
+        .student-portal-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--cba-border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+        }
+
+        .student-portal-nav .nav-link {
+            color: var(--cba-text-secondary);
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.85rem;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .student-portal-nav .nav-link:hover {
+            color: var(--cba-text-primary);
+            background-color: var(--cba-surface-subtle);
+        }
+
+        .student-portal-nav .nav-link.active {
+            color: var(--cba-primary);
+            background-color: var(--cba-primary-light);
+            font-weight: 600;
+        }
+
+        /* Institutional Brand Badge */
+        .inst-badge {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Mobile touch improvements */
+        @media (max-width: 767.98px) {
+            .form-control, .form-select {
+                font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+                min-height: 44px;
+            }
+            .btn {
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Student Portal Navigation Bar -->
+    <header class="student-portal-header py-2 px-3 px-md-4">
+        <div class="container-xl d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <a href="{% url 'student_reservations:catalog' %}" class="d-flex align-items-center gap-2 text-decoration-none">
+                    <div class="sidebar-brand-mark d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: var(--cba-primary); border-radius: 6px; color: #fff;">
+                        <i class="bi bi-laptop fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-1.5">
+                            <span class="inst-badge">CBA</span>
+                            <span class="fw-bold text-dark fs-6" style="letter-spacing: -0.01em;">Equipment Portal</span>
+                        </div>
+                        <small class="text-muted d-none d-sm-block" style="font-size: 0.725rem;">College of Business Administration</small>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Desktop Links -->
+            <nav class="student-portal-nav d-none d-md-flex align-items-center gap-1">
+                <a href="{% url 'student_reservations:catalog' %}" class="nav-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+                    <i class="bi bi-grid me-1.5"></i> Equipment Catalog
+                </a>
+                <a href="{% url 'student_reservations:public_request' %}" class="nav-link {% if request.resolver_match.url_name == 'public_request' %}active{% endif %}">
+                    <i class="bi bi-calendar-plus me-1.5"></i> Reserve Equipment
+                </a>
+                <a href="{% url 'student_reservations:public_lookup_search' %}" class="nav-link {% if request.resolver_match.url_name in 'public_lookup_search,public_lookup,public_confirmation' %}active{% endif %}">
+                    <i class="bi bi-search me-1.5"></i> Check Status
+                </a>
+                {% if user.is_authenticated and user.is_admin %}
+                <a href="{% url 'student_reservations:custodian_list' %}" class="btn btn-sm btn-outline-secondary ms-2" style="font-size: 0.8125rem;">
+                    <i class="bi bi-shield-check me-1"></i> Custodian Queue
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Mobile Offcanvas Toggle -->
+            <div class="d-md-none d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary border-0 p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#studentNavOffcanvas" aria-controls="studentNavOffcanvas" aria-label="Toggle navigation">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Drawer -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="studentNavOffcanvas" aria-labelledby="studentNavOffcanvasLabel" style="width: 280px;">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title fw-bold fs-6" id="studentNavOffcanvasLabel">Student Portal Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-3">
+            <div class="d-flex flex-column gap-2 student-portal-nav">
+                <a href="{% url 'student_reservations:catalog' %}" class="nav-link w-100 {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+                    <i class="bi bi-grid me-2 fs-5"></i> Equipment Catalog
+                </a>
+                <a href="{% url 'student_reservations:public_request' %}" class="nav-link w-100 {% if request.resolver_match.url_name == 'public_request' %}active{% endif %}">
+                    <i class="bi bi-calendar-plus me-2 fs-5"></i> Reserve Equipment
+                </a>
+                <a href="{% url 'student_reservations:public_lookup_search' %}" class="nav-link w-100 {% if request.resolver_match.url_name in 'public_lookup_search,public_lookup,public_confirmation' %}active{% endif %}">
+                    <i class="bi bi-search me-2 fs-5"></i> Check Status
+                </a>
+                {% if user.is_authenticated and user.is_admin %}
+                <hr class="my-2">
+                <a href="{% url 'student_reservations:custodian_list' %}" class="nav-link w-100 text-primary">
+                    <i class="bi bi-shield-check me-2 fs-5"></i> Property Custodian Queue
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 p-3 rounded bg-light border border-light-subtle">
+                <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-semibold small">
+                    <i class="bi bi-info-circle-fill"></i> Physical ID Reminder
+                </div>
+                <p class="text-muted small mb-0" style="font-size: 0.775rem; line-height: 1.4;">
+                    Students must deposit their original School ID at the CBA Property Office upon equipment pickup.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow-1 py-3 py-md-4">
+        <div class="container-xl">
+            {% include 'includes/messages.html' %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Institutional Footer -->
+    <footer class="bg-white border-top border-light-subtle py-3 mt-auto text-muted small">
+        <div class="container-xl d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 text-center text-sm-start">
+            <div>
+                &copy; {% now "Y" %} College of Business Administration &bull; Property &amp; Inventory Management
+            </div>
+            <div class="text-secondary" style="font-size: 0.8rem;">
+                <span>CBA Office Hours: Mon &ndash; Fri, 8:00 AM &ndash; 5:00 PM</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.3.0 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

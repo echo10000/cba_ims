@@ -1,0 +1,327 @@
+<div class="bg-white p-3 p-md-4 rounded border border-light-subtle shadow-xs" id="reservation-status-card">
+
+    <!-- Top Status Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 pb-3 mb-3 border-bottom border-light-subtle">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="inst-badge">RESERVATION #{{ reservation.pk }}</span>
+                <span class="text-muted small">&bull; Submitted {{ reservation.created_at|date:"M d, Y" }}</span>
+            </div>
+            <h2 class="h5 fw-bold text-dark mb-0">
+                {{ reservation.category.name }}
+                {% if reservation.equipment_type %}<span class="text-secondary fw-normal">({{ reservation.equipment_type }})</span>{% endif %}
+            </h2>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Dynamic Status Badge -->
+            {% if reservation.status == 'PENDING' %}
+                <span class="badge" style="background-color: var(--cba-status-warning-bg); color: var(--cba-status-warning-text); border: 1px solid var(--cba-status-warning-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-hourglass-split me-1"></i> Pending Custodian Review
+                </span>
+            {% elif reservation.status == 'APPROVED' %}
+                <span class="badge" style="background-color: var(--cba-status-available-bg); color: var(--cba-status-available-text); border: 1px solid var(--cba-status-available-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-check-circle-fill me-1"></i> Approved &mdash; Ready for Pickup
+                </span>
+            {% elif reservation.status == 'RELEASED' %}
+                <span class="badge" style="background-color: var(--cba-status-assigned-bg); color: var(--cba-status-assigned-text); border: 1px solid var(--cba-status-assigned-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> In Student Custody
+                </span>
+            {% elif reservation.status == 'RETURNED_TO_GUARD' %}
+                <span class="badge" style="background-color: var(--cba-status-warning-bg); color: var(--cba-status-warning-text); border: 1px solid var(--cba-status-warning-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-shield-lock me-1"></i> Returned to Guard (Awaiting Inspection)
+                </span>
+            {% elif reservation.status == 'RETURNED' %}
+                <span class="badge" style="background-color: var(--cba-status-available-bg); color: var(--cba-status-available-text); border: 1px solid var(--cba-status-available-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-check2-all me-1"></i> Returned &amp; Completed
+                </span>
+            {% elif reservation.status == 'NO_SHOW' %}
+                <span class="badge" style="background-color: var(--cba-status-retired-bg); color: var(--cba-status-retired-text); border: 1px solid var(--cba-status-retired-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-clock-history me-1"></i> No Show (Grace Period Expired)
+                </span>
+            {% elif reservation.status == 'REJECTED' %}
+                <span class="badge" style="background-color: var(--cba-status-critical-bg); color: var(--cba-status-critical-text); border: 1px solid var(--cba-status-critical-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-x-circle-fill me-1"></i> Request Declined
+                </span>
+            {% elif reservation.status == 'CANCELLED' %}
+                <span class="badge" style="background-color: var(--cba-status-retired-bg); color: var(--cba-status-retired-text); border: 1px solid var(--cba-status-retired-border); font-size: 0.8125rem; padding: 6px 12px;">
+                    <i class="bi bi-slash-circle me-1"></i> Cancelled
+                </span>
+            {% endif %}
+
+            <!-- Refresh Button (HTMX) -->
+            <button class="btn btn-sm btn-light border py-1 px-2"
+                    hx-get="{% url 'student_reservations:public_lookup' token=reservation.lookup_token %}"
+                    hx-target="#status-card-container"
+                    hx-indicator="#refresh-spinner"
+                    title="Refresh status">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <div class="spinner-border spinner-border-sm text-secondary htmx-indicator" id="refresh-spinner" role="status"></div>
+        </div>
+    </div>
+
+    <!-- Lifecycle Status Tracker Visual Step Bar -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center position-relative mb-2">
+            <!-- Step Line Background -->
+            <div class="position-absolute start-0 end-0 top-50 translate-middle-y bg-light-subtle border-top border-2" style="z-index: 1;"></div>
+
+            <!-- Step 1: Requested -->
+            <div class="d-flex flex-column align-items-center position-relative text-center" style="z-index: 2; width: 20%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                     style="width: 28px; height: 28px; font-size: 0.75rem; background: var(--cba-primary); color: #fff;">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <span class="small fw-semibold text-dark mt-1" style="font-size: 0.75rem;">Submitted</span>
+            </div>
+
+            <!-- Step 2: Approved -->
+            <div class="d-flex flex-column align-items-center position-relative text-center" style="z-index: 2; width: 20%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                     style="width: 28px; height: 28px; font-size: 0.75rem;
+                     {% if reservation.status in 'APPROVED,RELEASED,RETURNED_TO_GUARD,RETURNED' %}background: var(--cba-primary); color: #fff;
+                     {% elif reservation.status == 'REJECTED' %}background: var(--cba-danger); color: #fff;
+                     {% elif reservation.status == 'NO_SHOW' %}background: #64748b; color: #fff;
+                     {% else %}background: #e2e8f0; color: #64748b;{% endif %}">
+                    {% if reservation.status in 'APPROVED,RELEASED,RETURNED_TO_GUARD,RETURNED' %}<i class="bi bi-check-lg"></i>
+                    {% elif reservation.status == 'REJECTED' %}<i class="bi bi-x-lg"></i>
+                    {% elif reservation.status == 'NO_SHOW' %}<i class="bi bi-dash"></i>
+                    {% else %}2{% endif %}
+                </div>
+                <span class="small fw-semibold mt-1 {% if reservation.status in 'APPROVED,RELEASED,RETURNED_TO_GUARD,RETURNED' %}text-dark{% else %}text-muted{% endif %}" style="font-size: 0.75rem;">Approved</span>
+            </div>
+
+            <!-- Step 3: Released (ID Deposited) -->
+            <div class="d-flex flex-column align-items-center position-relative text-center" style="z-index: 2; width: 20%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                     style="width: 28px; height: 28px; font-size: 0.75rem;
+                     {% if reservation.status in 'RELEASED,RETURNED_TO_GUARD,RETURNED' %}background: var(--cba-primary); color: #fff;
+                     {% else %}background: #e2e8f0; color: #64748b;{% endif %}">
+                    {% if reservation.status in 'RELEASED,RETURNED_TO_GUARD,RETURNED' %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}
+                </div>
+                <span class="small fw-semibold mt-1 {% if reservation.status in 'RELEASED,RETURNED_TO_GUARD,RETURNED' %}text-dark{% else %}text-muted{% endif %}" style="font-size: 0.75rem;">Released</span>
+            </div>
+
+            <!-- Step 4: Returned -->
+            <div class="d-flex flex-column align-items-center position-relative text-center" style="z-index: 2; width: 20%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                     style="width: 28px; height: 28px; font-size: 0.75rem;
+                     {% if reservation.status in 'RETURNED_TO_GUARD,RETURNED' %}background: var(--cba-primary); color: #fff;
+                     {% else %}background: #e2e8f0; color: #64748b;{% endif %}">
+                    {% if reservation.status in 'RETURNED_TO_GUARD,RETURNED' %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}
+                </div>
+                <span class="small fw-semibold mt-1 {% if reservation.status in 'RETURNED_TO_GUARD,RETURNED' %}text-dark{% else %}text-muted{% endif %}" style="font-size: 0.75rem;">Returned</span>
+            </div>
+
+            <!-- Step 5: Completed / Cleared -->
+            <div class="d-flex flex-column align-items-center position-relative text-center" style="z-index: 2; width: 20%;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                     style="width: 28px; height: 28px; font-size: 0.75rem;
+                     {% if reservation.status == 'RETURNED' %}background: #15803d; color: #fff;
+                     {% else %}background: #e2e8f0; color: #64748b;{% endif %}">
+                    {% if reservation.status == 'RETURNED' %}<i class="bi bi-check2-all"></i>{% else %}5{% endif %}
+                </div>
+                <span class="small fw-semibold mt-1 {% if reservation.status == 'RETURNED' %}text-dark{% else %}text-muted{% endif %}" style="font-size: 0.75rem;">Completed</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active State Operational Action Callout -->
+    {% if reservation.status == 'APPROVED' %}
+        <div class="p-3 rounded mb-3 border border-success-subtle" style="background-color: var(--cba-status-available-bg);">
+            <div class="d-flex align-items-start gap-2.5">
+                <i class="bi bi-bell-fill fs-4 text-success flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="h6 fw-bold text-success mb-1">Equipment Ready for Pickup!</h3>
+                    <p class="text-secondary small mb-2" style="font-size: 0.8125rem;">
+                        Your request has been approved by the Property Custodian. Please visit the CBA Property Office with your <strong>original physical School ID</strong>.
+                    </p>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge bg-white text-dark border font-mono small py-1 px-2">
+                            <i class="bi bi-stopwatch me-1 text-primary"></i> Pickup Deadline: {{ reservation.pickup_deadline|date:"h:i A" }}
+                        </span>
+                        <span class="text-muted small" style="font-size: 0.75rem;">
+                            (Grace period: {{ reservation.grace_period_minutes }} minutes from pickup time)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif reservation.status == 'RELEASED' %}
+        <div class="p-3 rounded mb-3 border border-primary-subtle" style="background-color: var(--cba-primary-light);">
+            <div class="d-flex align-items-start gap-2.5">
+                <i class="bi bi-box-seam fs-4 text-primary flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="h6 fw-bold text-primary mb-1">Equipment Currently in Your Custody</h3>
+                    <p class="text-secondary small mb-1" style="font-size: 0.8125rem;">
+                        Your physical School ID is safely held in custody at the CBA Property Office. Please return the equipment promptly by your scheduled return time.
+                    </p>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                        <span class="badge bg-white text-dark border font-mono small py-1 px-2">
+                            <i class="bi bi-calendar-event me-1 text-primary"></i> Return by: {{ reservation.requested_return|date:"M d, Y &mdash; h:i A" }}
+                        </span>
+                        {% if reservation.is_overdue %}
+                            <span class="badge" style="background-color: var(--cba-status-critical-bg); color: var(--cba-status-critical-text); border: 1px solid var(--cba-status-critical-border);">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Overdue ({{ reservation.overdue_duration }})
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif reservation.status == 'RETURNED_TO_GUARD' %}
+        <div class="p-3 rounded mb-3 border border-warning-subtle" style="background-color: var(--cba-status-warning-bg);">
+            <div class="d-flex align-items-start gap-2.5">
+                <i class="bi bi-shield-lock-fill fs-4 text-warning flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="h6 fw-bold text-warning mb-1">Returned to Security Guard (Pending Inspection)</h3>
+                    <p class="text-secondary small mb-1" style="font-size: 0.8125rem;">
+                        Equipment handover to the security guard was recorded on {{ reservation.guard_returned_at|date:"M d, Y h:i A" }}.
+                        The equipment is stored securely and will be inspected by the CBA Property Custodian on the next working day.
+                    </p>
+                    <small class="text-muted d-block mt-1">
+                        Please claim your deposited School ID at the CBA Property Office after staff inspection is finalized.
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% elif reservation.status == 'REJECTED' %}
+        <div class="p-3 rounded mb-3 border border-danger-subtle" style="background-color: var(--cba-status-critical-bg);">
+            <div class="d-flex align-items-start gap-2.5">
+                <i class="bi bi-x-circle-fill fs-4 text-danger flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="h6 fw-bold text-danger mb-1">Reservation Request Declined</h3>
+                    <p class="text-secondary small mb-0" style="font-size: 0.8125rem;">
+                        <strong>Reason:</strong> {{ reservation.rejection_reason|default:"Equipment unavailable or conflicting official college event." }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% elif reservation.status == 'NO_SHOW' %}
+        <div class="p-3 rounded mb-3 border border-secondary-subtle bg-light">
+            <div class="d-flex align-items-start gap-2.5">
+                <i class="bi bi-clock-history fs-4 text-secondary flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="h6 fw-bold text-dark mb-1">Pickup Grace Period Expired</h3>
+                    <p class="text-secondary small mb-0" style="font-size: 0.8125rem;">
+                        The 15-minute pickup window expired without equipment collection. The allocated unit has been returned to the available inventory pool.
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Detailed Metadata Grid -->
+    <div class="row g-3">
+        <!-- Allocated Asset / Equipment Details -->
+        <div class="col-12 col-md-6">
+            <div class="p-3 rounded bg-light border border-light-subtle h-100">
+                <div class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 0.6875rem; letter-spacing: 0.05em;">
+                    <i class="bi bi-box-seam me-1"></i> Allocated Equipment Details
+                </div>
+                {% if reservation.asset %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-white text-dark border font-mono small py-1 px-2">
+                            {{ reservation.asset.asset_code }}
+                        </span>
+                        <strong class="text-dark">{{ reservation.asset.item_name }}</strong>
+                    </div>
+                    <dl class="row g-1 mb-0 small text-secondary" style="font-size: 0.8rem;">
+                        <dt class="col-4">Model:</dt>
+                        <dd class="col-8 text-dark">{{ reservation.asset.model|default:"-" }}</dd>
+
+                        <dt class="col-4">Property No:</dt>
+                        <dd class="col-8 font-mono text-dark">{{ reservation.asset.property_number|default:"-" }}</dd>
+
+                        <dt class="col-4">Condition:</dt>
+                        <dd class="col-8 text-dark">{{ reservation.asset.get_condition_display }}</dd>
+                    </dl>
+                {% else %}
+                    <p class="text-muted small mb-0" style="font-size: 0.8125rem;">
+                        A specific physical asset (e.g. 1 of 3 projectors) has not yet been allocated by the Custodian.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Physical School ID Custody Status -->
+        <div class="col-12 col-md-6">
+            <div class="p-3 rounded bg-light border border-light-subtle h-100">
+                <div class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 0.6875rem; letter-spacing: 0.05em;">
+                    <i class="bi bi-person-badge me-1"></i> Physical School ID Custody
+                </div>
+
+                {% if reservation.id_collected_at %}
+                    <div class="d-flex align-items-center gap-2 text-success small mb-1">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <strong>ID Collected by Student</strong>
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">
+                        Collected on {{ reservation.id_collected_at|date:"M d, Y &mdash; h:i A" }}
+                        {% if reservation.id_returned_by %} (Verified by {{ reservation.id_returned_by.get_full_name|default:reservation.id_returned_by.username }}){% endif %}
+                    </small>
+                {% elif reservation.id_deposit_verified %}
+                    <div class="d-flex align-items-center gap-2 text-primary small mb-1">
+                        <i class="bi bi-shield-check"></i>
+                        <strong>Physical ID in CBA Office Custody</strong>
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">
+                        Deposited upon equipment release on {{ reservation.id_deposited_at|date:"M d, Y &mdash; h:i A" }}.
+                        Collect at the CBA Property Office upon equipment return inspection.
+                    </small>
+                {% else %}
+                    <div class="d-flex align-items-center gap-2 text-secondary small mb-1">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Not yet deposited</span>
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">
+                        You must bring and leave your physical School ID when collecting this equipment.
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Schedule & Purpose Details -->
+        <div class="col-12">
+            <div class="p-3 rounded bg-light border border-light-subtle">
+                <div class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 0.6875rem; letter-spacing: 0.05em;">
+                    <i class="bi bi-calendar3 me-1"></i> Reservation Particulars
+                </div>
+                <div class="row g-2 small">
+                    <div class="col-12 col-md-4">
+                        <span class="text-secondary d-block">Requested Pickup:</span>
+                        <strong class="text-dark font-mono">{{ reservation.requested_pickup|date:"M d, Y &mdash; h:i A" }}</strong>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <span class="text-secondary d-block">Requested Return:</span>
+                        <strong class="text-dark font-mono">{{ reservation.requested_return|date:"M d, Y &mdash; h:i A" }}</strong>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <span class="text-secondary d-block">Venue / Room:</span>
+                        <strong class="text-dark">{{ reservation.room_venue|default:"CBA Main" }}</strong>
+                    </div>
+                    <div class="col-12 mt-2 pt-2 border-top border-light-subtle">
+                        <span class="text-secondary d-block">Declared Purpose:</span>
+                        <span class="text-dark">{{ reservation.purpose }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Contact (Privacy Masked) -->
+        <div class="col-12">
+            <div class="p-2.5 rounded bg-white border border-light-subtle d-flex flex-wrap justify-content-between align-items-center gap-2 small text-secondary">
+                <div>
+                    Borrower: <strong class="text-dark">{{ reservation.student_name }}</strong>
+                    <span class="mx-1">&bull;</span> {{ reservation.course_year_section }}
+                    <span class="mx-1">&bull;</span> <span class="font-mono">{{ masked_phone|default:"0917****" }}</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.725rem;">
+                    <i class="bi bi-lock me-1"></i> Contact details masked for privacy
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

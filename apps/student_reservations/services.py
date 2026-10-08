@@ -317,13 +317,8 @@ def submit_reservation(
     if not getattr(category, 'is_active', True) or not getattr(category, 'is_reservable', True):
         raise ValidationError({'category': f"Category '{category.name}' is not currently available for reservations."})
 
-    # Basic verification: Ensure at least one asset exists for this category
+    # Basic verification: Ensure at least one reservable asset exists for this category
     total_assets = get_reservable_assets(category=category)
-    if equipment_type:
-        total_assets = total_assets.filter(
-            Q(item_name__icontains=equipment_type) |
-            Q(model__icontains=equipment_type)
-        )
     if not total_assets.exists():
         raise ValidationError({'category': f"No reservable equipment currently registered under category '{category.name}'."})
 

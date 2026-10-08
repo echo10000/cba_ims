@@ -88,10 +88,6 @@ class PublicStudentReservationForm(forms.ModelForm):
             if pickup < now - timedelta(minutes=10):
                 self.add_error('requested_pickup', "Requested pickup time cannot be in the past.")
 
-            # Reasonable borrowing duration limit (e.g. max 48 hours for student reservations)
-            if (ret - pickup) > timedelta(hours=48):
-                self.add_error('requested_return', "Single student reservations cannot exceed 48 consecutive hours.")
-
         if category:
             if not getattr(category, 'is_reservable', True) or not getattr(category, 'is_active', True):
                 self.add_error('category', f"Category '{category.name}' is not currently available for reservations.")

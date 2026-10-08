@@ -852,3 +852,201 @@ class InvalidStatusTransitionsTestCase(StudentReservationBaseTestCase):
 
         with self.assertRaises(ValidationError):
             student_services.complete_inspection(res, self.custodian_user, Asset.Condition.GOOD)
+
+
+class StudentReservationFrontendViewTestCase(StudentReservationBaseTestCase):
+    """
+    Focused tests for Phase 2A student-facing views, templates, validation, and HTMX endpoints:
+    1. Catalog view with reservable assets and availability checking
+    2. Availability checker HTMX endpoint
+    3. Mobile-friendly reservation form (GET & POST)
+    4. Confirmation screen and tracking token
+    5. Status lookup view (HTML, HTMX partial, and JSON API)
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.client = Client()
+
+    def test_catalog_view_renders_properly(self):
+        """Catalog displays reservable categories and unit counts while excluding non-reservable categories."""
+        response = self.client.get('/student-reservations/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/catalog.html')
+        self.assertContains(response, 'Audio-Visual')
+        self.assertContains(response, '3 Units Tracked')
+        # Non-reservable category should not appear as a reservable card
+        self.assertNotContains(response, 'Office Furniture')
+
+    def test_check_availability_htmx_endpoint(self):
+        """HTMX schedule availability checker returns live counts for requested timeslot."""
+        pickup_str = self.t_start.strftime('%Y-%m-%dT%H:%M')
+        return_str = self.t_end.strftime('%Y-%m-%dT%H:%M')
+
+        # 1. Available check (all 3 projectors available)
+        response = self.client.get(
+            f'/student-reservations/check-availability/?pickup={pickup_str}&return={return_str}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/partials/_availability_result.html')
+        self.assertContains(response, '3 / 3 Available')
+
+        # 2. Allocate and approve all 3 projectors for this timeslot
+        for i, proj in enumerate([self.proj_1, self.proj_2, self.proj_3], start=1):
+            r = student_services.submit_reservation(
+                f'ST-TEST-{i}', f'Student {i}', 'BSBA 1', f'st{i}@cba.edu', '09170000000',
+                self.cat_av, self.t_start, self.t_end, 'Event'
+            )
+            student_services.approve_reservation(r, proj, self.custodian_user)
+
+        # 3. Check again: now 0 of 3 available (Fully Booked)
+        response = self.client.get(
+            f'/student-reservations/check-availability/?pickup={pickup_str}&return={return_str}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Fully Booked')
+
+    def test_check_availability_validation_errors(self):
+        """Availability checker displays errors on invalid timeslots."""
+        # Return time before pickup time
+        pickup_str = self.t_end.strftime('%Y-%m-%dT%H:%M')
+        return_str = self.t_start.strftime('%Y-%m-%dT%H:%M')
+        response = self.client.get(
+            f'/student-reservations/check-availability/?pickup={pickup_str}&return={return_str}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Requested return time must be strictly after pickup time.')
+
+    def test_reservation_form_get_and_post_submission(self):
+        """Student reservation form renders properly and accepts valid submissions."""
+        # 1. GET form
+        response = self.client.get(f'/student-reservations/request/?category={self.cat_av.id}')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/reservation_form.html')
+        self.assertContains(response, 'Physical School ID Custody Policy')
+
+        # 2. POST valid submission
+        post_data = {
+            'student_id': '2024-99881',
+            'student_name': 'Jose Rizal',
+            'course_year_section': 'BSBA MM 4-A',
+            'email': 'j.rizal@student.cba.edu',
+            'contact_number': '09181234567',
+            'category': self.cat_av.id,
+            'equipment_type': 'HDMI Projector',
+            'requested_pickup': (timezone.now() + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M'),
+            'requested_return': (timezone.now() + timedelta(hours=5)).strftime('%Y-%m-%dT%H:%M'),
+            'purpose': 'Marketing thesis oral defense in AVR',
+            'room_venue': 'AVR Hall',
+        }
+        post_resp = self.client.post('/student-reservations/request/', data=post_data)
+        # Should redirect to confirmation page
+        self.assertEqual(post_resp.status_code, 302)
+        self.assertIn('/student-reservations/confirmed/', post_resp.url)
+
+        res = StudentReservation.objects.get(student_id='2024-99881')
+        self.assertEqual(res.status, StudentReservation.Status.PENDING)
+        self.assertIsNotNone(res.lookup_token)
+
+    def test_confirmation_page_renders_with_token(self):
+        """Confirmation screen displays reservation token, summary, and next steps."""
+        res = student_services.submit_reservation(
+            '2024-55443', 'Andres Bonifacio', 'BSBA 3-B', 'a.bonifacio@cba.edu', '09191234567',
+            self.cat_av, self.t_start, self.t_end, 'Leadership Seminar', 'Room 102'
+        )
+        response = self.client.get(f'/student-reservations/confirmed/{res.lookup_token}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/confirmation.html')
+        self.assertContains(response, res.lookup_token)
+        self.assertContains(response, 'Andres Bonifacio')
+        self.assertContains(response, 'What Happens Next?')
+
+    def test_status_lookup_page_and_htmx_partial(self):
+        """Status lookup renders full page and HTMX status card with privacy masking."""
+        res = student_services.submit_reservation(
+            '2024-11223', 'Apolinario Mabini', 'BSBA 2-A', 'mabini@cba.edu', '09179876543',
+            self.cat_av, self.t_start, self.t_end, 'Research Presentation'
+        )
+
+        # 1. Empty lookup page
+        response = self.client.get('/student-reservations/lookup/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/lookup.html')
+        self.assertContains(response, 'Track Equipment Reservation')
+
+        # 2. Lookup with token GET param
+        response = self.client.get(f'/student-reservations/lookup/?token={res.lookup_token}')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Apolinario Mabini')
+        self.assertContains(response, 'Pending Custodian Review')
+        # Privacy masking: real email & phone are masked
+        self.assertNotContains(response, 'mabini@cba.edu')
+        self.assertNotContains(response, '09179876543')
+
+        # 3. Direct lookup URL
+        response = self.client.get(f'/student-reservations/lookup/{res.lookup_token}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Apolinario Mabini')
+
+        # 4. HTMX partial request
+        htmx_resp = self.client.get(
+            f'/student-reservations/lookup/{res.lookup_token}/',
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(htmx_resp.status_code, 200)
+        self.assertTemplateUsed(htmx_resp, 'student_reservations/partials/_status_card.html')
+
+        # 5. Invalid token renders warning
+        invalid_resp = self.client.get('/student-reservations/lookup/?token=invalid-random-token')
+        self.assertEqual(invalid_resp.status_code, 200)
+        self.assertContains(invalid_resp, 'Reservation Not Found')
+
+    def test_multi_day_longer_reservation_request_allowed(self):
+        """
+        Valid multi-day reservation requests (e.g. 72-hour weekend event) are accepted without
+        an unapproved 48-hour ceiling, while remaining strictly in PENDING status for manual Custodian review.
+        """
+        # Friday 1:00 PM to Monday 1:00 PM (72 hours)
+        long_pickup = timezone.now() + timedelta(days=2)
+        long_return = long_pickup + timedelta(hours=72)
+
+        post_data = {
+            'student_id': '2024-77889',
+            'student_name': 'Melchora Aquino',
+            'course_year_section': 'BSBA 4-C',
+            'email': 'm.aquino@student.cba.edu',
+            'contact_number': '09171239876',
+            'category': self.cat_av.id,
+            'equipment_type': 'Projector',
+            'requested_pickup': long_pickup.strftime('%Y-%m-%dT%H:%M'),
+            'requested_return': long_return.strftime('%Y-%m-%dT%H:%M'),
+            'purpose': 'College Business Leadership Weekend Symposium',
+            'room_venue': 'University Auditorium',
+        }
+        response = self.client.post('/student-reservations/request/', data=post_data)
+        # Successfully accepted and redirected to confirmation (not rejected by 48-hour error)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/student-reservations/confirmed/', response.url)
+
+        res = StudentReservation.objects.get(student_id='2024-77889')
+        # Remains in PENDING status awaiting manual Custodian approval; not automatically approved
+        self.assertEqual(res.status, StudentReservation.Status.PENDING)
+        self.assertIsNone(res.asset)
+        self.assertIsNone(res.reviewed_by)
+
+    def test_check_availability_supports_multi_day_interval(self):
+        """Availability checker supports intervals longer than 48 hours without error."""
+        long_pickup = timezone.now() + timedelta(days=1)
+        long_return = long_pickup + timedelta(hours=72)
+        pickup_str = long_pickup.strftime('%Y-%m-%dT%H:%M')
+        return_str = long_return.strftime('%Y-%m-%dT%H:%M')
+
+        response = self.client.get(
+            f'/student-reservations/check-availability/?pickup={pickup_str}&return={return_str}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'student_reservations/partials/_availability_result.html')
+        self.assertNotContains(response, '48 consecutive hours')
+        self.assertContains(response, '3 / 3 Available')
+
+

@@ -1,0 +1,244 @@
+{% extends 'student_reservations/base_student.html' %}
+{% load static %}
+
+{% block title %}Equipment Catalog — CBA Student Equipment Reservations{% endblock %}
+
+{% block content %}
+<div class="row g-3 g-md-4">
+
+    <!-- Hero / Header Section -->
+    <div class="col-12">
+        <div class="bg-white p-3 p-md-4 rounded border border-light-subtle shadow-xs">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="inst-badge">STUDENT SERVICES</span>
+                        <span class="text-muted small">&bull; Property Custodianship</span>
+                    </div>
+                    <h1 class="h4 fw-bold text-dark mb-1" style="letter-spacing: -0.015em;">
+                        Equipment Catalog &amp; Availability
+                    </h1>
+                    <p class="text-secondary small mb-0" style="max-width: 680px;">
+                        Reserve individually tracked CBA instructional equipment such as projectors, sound equipment, and display adapters for classroom presentations and university events.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'student_reservations:public_request' %}" class="btn btn-primary-cba">
+                        <i class="bi bi-calendar-plus me-1.5"></i> Submit Reservation
+                    </a>
+                    <a href="{% url 'student_reservations:public_lookup_search' %}" class="btn btn-secondary-cba">
+                        <i class="bi bi-search me-1.5"></i> Check Status
+                    </a>
+                </div>
+            </div>
+
+            <!-- Essential Rules Banner -->
+            <div class="row g-2 mt-3 pt-3 border-top border-light-subtle">
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-start gap-2 text-secondary small">
+                        <i class="bi bi-person-badge fs-5 text-primary flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark d-block">Original School ID Required</strong>
+                            <span>Physical ID must be deposited at CBA office at pickup.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-start gap-2 text-secondary small">
+                        <i class="bi bi-stopwatch fs-5 text-primary flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark d-block">15-Minute Grace Period</strong>
+                            <span>Approved equipment must be claimed within 15 minutes of pickup time.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="d-flex align-items-start gap-2 text-secondary small">
+                        <i class="bi bi-shield-check fs-5 text-primary flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark d-block">Direct or Guard Return</strong>
+                            <span>Return to CBA office, or after hours to an authorized security guard.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Availability Checker (HTMX Powered) -->
+    <div class="col-12">
+        <div class="bg-white p-3 p-md-4 rounded border border-light-subtle shadow-xs">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                <div>
+                    <h2 class="h6 fw-bold text-dark mb-0">
+                        <i class="bi bi-calendar-check me-1.5 text-primary"></i> Check Schedule Availability
+                    </h2>
+                    <small class="text-muted">Select your planned presentation hours to verify available inventory in real time.</small>
+                </div>
+                <div class="spinner-border spinner-border-sm text-primary htmx-indicator" id="availability-spinner" role="status">
+                    <span class="visually-hidden">Checking schedule...</span>
+                </div>
+            </div>
+
+            <form hx-get="{% url 'student_reservations:check_availability' %}"
+                  hx-target="#availability-results-container"
+                  hx-indicator="#availability-spinner"
+                  hx-trigger="submit, change delay:400ms from:#pickup-input, change delay:400ms from:#return-input"
+                  class="row g-2 align-items-end"
+                  x-data="{
+                      setPreset(startH, startM, endH, endM, isTomorrow) {
+                          const now = new Date();
+                          if (isTomorrow) {
+                              now.setDate(now.getDate() + 1);
+                          }
+                          const s = new Date(now);
+                          s.setHours(startH, startM, 0, 0);
+                          const e = new Date(now);
+                          e.setHours(endH, endM, 0, 0);
+
+                          const formatIso = (d) => {
+                              const pad = (n) => String(n).padStart(2, '0');
+                              return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                          };
+
+                          document.getElementById('pickup-input').value = formatIso(s);
+                          document.getElementById('return-input').value = formatIso(e);
+                          htmx.trigger(document.getElementById('availability-form'), 'submit');
+                      }
+                  }"
+                  id="availability-form">
+
+                <div class="col-12 col-md-4">
+                    <label for="pickup-input" class="form-label fw-semibold small text-secondary mb-1">
+                        Requested Pickup Date &amp; Time
+                    </label>
+                    <input type="datetime-local" class="form-control form-control-sm" id="pickup-input" name="pickup" value="{{ default_pickup }}">
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="return-input" class="form-label fw-semibold small text-secondary mb-1">
+                        Requested Return Date &amp; Time
+                    </label>
+                    <input type="datetime-local" class="form-control form-control-sm" id="return-input" name="return" value="{{ default_return }}">
+                </div>
+
+                <div class="col-12 col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary-cba flex-grow-1">
+                        <i class="bi bi-search me-1"></i> Check Timeslot
+                    </button>
+                </div>
+
+                <!-- Quick Preset Shortcuts -->
+                <div class="col-12 mt-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1.5 text-secondary" style="font-size: 0.775rem;">
+                        <span class="text-muted me-1">Quick timeslots:</span>
+                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.725rem;" @click="setPreset(13, 0, 17, 0, false)">
+                            Today 1:00 PM &ndash; 5:00 PM
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.725rem;" @click="setPreset(8, 0, 12, 0, true)">
+                            Tomorrow 8:00 AM &ndash; 12:00 PM
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.725rem;" @click="setPreset(13, 0, 17, 0, true)">
+                            Tomorrow 1:00 PM &ndash; 5:00 PM
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Dynamic Results Target Container -->
+            <div id="availability-results-container" class="mt-3">
+                {% include 'student_reservations/partials/_availability_result.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Equipment Catalog Items Grid -->
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 fw-bold text-dark mb-0">
+                <i class="bi bi-grid-3x3-gap me-1.5 text-primary"></i> Available Equipment Categories
+            </h2>
+            <span class="text-muted small">
+                {{ categories|length }} Reservable Categor{{ categories|length|pluralize:"y,ies" }}
+            </span>
+        </div>
+
+        <div class="row g-3">
+            {% for cat_data in catalog_cards %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100 border border-light-subtle shadow-xs" style="border-radius: 8px; overflow: hidden;">
+                    <!-- Image or Equipment Icon Header -->
+                    <div class="p-3 text-center border-bottom border-light-subtle" style="background: #f8fafc; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                        {% if cat_data.sample_image_url %}
+                            <img src="{{ cat_data.sample_image_url }}" alt="{{ cat_data.category.name }}" class="img-fluid" style="max-height: 120px; object-fit: contain;">
+                        {% else %}
+                            <div class="text-center py-2">
+                                <i class="{{ cat_data.icon|default:'bi bi-projector' }} text-primary" style="font-size: 3.25rem;"></i>
+                                <span class="d-block text-muted small mt-1 font-mono" style="font-size: 0.7rem;">CBA ASSET CATEGORY</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                <h3 class="h6 fw-bold text-dark mb-0">{{ cat_data.category.name }}</h3>
+                                <span class="badge" style="background-color: var(--cba-status-available-bg); color: var(--cba-status-available-text); border: 1px solid var(--cba-status-available-border); font-size: 0.725rem;">
+                                    {{ cat_data.total_units }} Unit{{ cat_data.total_units|pluralize }} Tracked
+                                </span>
+                            </div>
+                            <p class="text-secondary small mb-2" style="font-size: 0.8125rem; line-height: 1.4;">
+                                {{ cat_data.category.description|default:"Standard classroom presentation equipment managed by the CBA Property Office." }}
+                            </p>
+
+                            <!-- Tracked Models / Assets Preview -->
+                            <div class="bg-light p-2 rounded border border-light-subtle mb-3">
+                                <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.05em;">
+                                    Tracked Models in Office:
+                                </div>
+                                <div class="fw-semibold text-dark small">
+                                    {{ cat_data.models_preview|default:"Individual asset units" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <a href="{% url 'student_reservations:public_request' %}?category={{ cat_data.category.id }}" class="btn btn-primary-cba w-100 btn-sm">
+                                <i class="bi bi-calendar-plus me-1"></i> Reserve {{ cat_data.category.name }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="bg-white p-5 rounded border border-light-subtle text-center text-muted">
+                    <i class="bi bi-inbox fs-1 text-secondary mb-2 d-block"></i>
+                    <h5 class="fw-bold text-dark">No Equipment Categories Available</h5>
+                    <p class="small mb-0">The Property Custodian has not marked any equipment categories as reservable yet.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Status Tracker Callout -->
+    <div class="col-12 mt-2">
+        <div class="p-3 rounded bg-white border border-light-subtle shadow-xs d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="p-2.5 rounded bg-light border border-light-subtle text-primary">
+                    <i class="bi bi-ticket-detailed fs-3"></i>
+                </div>
+                <div>
+                    <h4 class="h6 fw-bold text-dark mb-0">Already have a reservation?</h4>
+                    <p class="text-secondary small mb-0">Track your approval, allocated unit, and pickup grace period with your secure reservation token.</p>
+                </div>
+            </div>
+            <a href="{% url 'student_reservations:public_lookup_search' %}" class="btn btn-secondary-cba text-nowrap">
+                <i class="bi bi-search me-1"></i> Track Reservation
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

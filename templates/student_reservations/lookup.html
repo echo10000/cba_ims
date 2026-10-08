@@ -1,0 +1,82 @@
+{% extends 'student_reservations/base_student.html' %}
+{% load static %}
+
+{% block title %}Track Reservation Status — CBA Student Equipment Reservations{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9 col-xl-8">
+
+        <!-- Search Header Card -->
+        <div class="bg-white p-3 p-md-4 rounded border border-light-subtle shadow-xs mb-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'student_reservations:catalog' %}" class="btn btn-sm btn-light border py-1 px-2 text-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Catalog
+                </a>
+                <span class="inst-badge">STATUS TRACKER</span>
+            </div>
+            <h1 class="h4 fw-bold text-dark mb-1" style="letter-spacing: -0.015em;">
+                Track Equipment Reservation
+            </h1>
+            <p class="text-secondary small mb-3">
+                Enter your secure 32-character tracking token to check real-time approval status, allocated asset unit, and pickup grace period.
+            </p>
+
+            <!-- Token Search Input -->
+            <form method="get" action="{% url 'student_reservations:public_lookup_search' %}" class="row g-2 align-items-center">
+                <div class="col-12 col-sm-9">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-secondary border-end-0">
+                            <i class="bi bi-key"></i>
+                        </span>
+                        <input type="text" name="token" class="form-control font-mono border-start-0"
+                               placeholder="Paste your 32-character tracking token..."
+                               value="{{ token|default:'' }}" required autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-12 col-sm-3">
+                    <button type="submit" class="btn btn-sm btn-primary-cba w-100">
+                        <i class="bi bi-search me-1"></i> Track
+                    </button>
+                </div>
+            </form>
+
+            <div class="d-flex align-items-center gap-1 text-muted small mt-2" style="font-size: 0.725rem;">
+                <i class="bi bi-shield-check text-primary"></i>
+                <span>Student ID is never used as a public lookup key to protect student privacy.</span>
+            </div>
+        </div>
+
+        <!-- Token Not Found Alert -->
+        {% if error %}
+        <div class="alert alert-warning py-2.5 px-3 mb-3 d-flex align-items-center gap-2 small" role="alert">
+            <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0 fs-5"></i>
+            <div>
+                <strong>Reservation Not Found:</strong> {{ error }}
+                <div class="text-muted mt-0.5">Please ensure you copied the entire tracking token. If you lost your token, please visit the CBA Property Office with your original physical School ID.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active Status Detail Container (HTMX Target) -->
+        <div id="status-card-container">
+            {% if reservation %}
+                {% include 'student_reservations/partials/_status_card.html' %}
+            {% elif not error %}
+                <!-- Empty State Prompt -->
+                <div class="bg-white p-4 rounded border border-light-subtle text-center text-muted shadow-xs">
+                    <i class="bi bi-upc-scan fs-1 text-secondary mb-2 d-block"></i>
+                    <h5 class="fw-bold text-dark">Enter Your Reservation Token Above</h5>
+                    <p class="small mb-3" style="max-width: 480px; margin: 0 auto;">
+                        When you submitted your reservation, a unique tracking token was generated. Paste it in the box above to view your live status.
+                    </p>
+                    <a href="{% url 'student_reservations:catalog' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Return to Equipment Catalog
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
