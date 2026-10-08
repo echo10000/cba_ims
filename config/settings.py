@@ -24,13 +24,13 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,[::1]',
+    default='localhost,127.0.0.1,[::1],.vercel.app',
     cast=Csv()
 )
 
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000,https://localhost:8000,https://127.0.0.1:8000',
+    default='http://localhost:8000,http://127.0.0.1:8000,https://localhost:8000,https://127.0.0.1:8000,https://*.vercel.app',
     cast=Csv()
 )
 
@@ -123,14 +123,32 @@ DATABASE_URL = config('DATABASE_URL', default=None)
 if DATABASE_URL:
     parsed_db_url = urllib.parse.urlparse(DATABASE_URL)
     engine = 'django.db.backends.postgresql' if 'postgres' in parsed_db_url.scheme else parsed_db_url.scheme
+
+    # Parse connection string query parameters (e.g. sslmode=require for managed PostgreSQL)
+    db_options = {}
+    if parsed_db_url.query:
+        query_params = urllib.parse.parse_qs(parsed_db_url.query)
+        for key, val_list in query_params.items():
+            if val_list:
+                db_options[key] = val_list[0]
+
+    # Fallback/override for sslmode if specified via environment variable
+    if 'sslmode' not in db_options and config('DB_SSLMODE', default=None):
+        db_options['sslmode'] = config('DB_SSLMODE')
+
+    user = urllib.parse.unquote(parsed_db_url.username or '')
+    password = urllib.parse.unquote(parsed_db_url.password or '')
+    db_name = urllib.parse.unquote(parsed_db_url.path.lstrip('/'))
+
     DATABASES = {
         'default': {
             'ENGINE': engine,
-            'NAME': parsed_db_url.path.lstrip('/'),
-            'USER': parsed_db_url.username or '',
-            'PASSWORD': parsed_db_url.password or '',
+            'NAME': db_name,
+            'USER': user,
+            'PASSWORD': password,
             'HOST': parsed_db_url.hostname or '',
             'PORT': str(parsed_db_url.port or '5432'),
+            'OPTIONS': db_options,
         }
     }
 else:
@@ -273,8 +291,12 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Reverse proxy SSL header: only trust X-Forwarded-Proto when explicitly configured
-# and deployed behind a trusted reverse proxy (e.g. Nginx) that sanitizes this header.
-_use_proxy_ssl_header = config('SECURE_PROXY_SSL_HEADER', default=False, cast=bool)
+# and deployed behind a trusted reverse proxy (e.g. Nginx, Vercel) that sanitizes this header.
+_use_proxy_ssl_header = config(
+    'SECURE_PROXY_SSL_HEADER',
+    default=bool(config('VERCEL', default=False)),
+    cast=bool
+)
 if _use_proxy_ssl_header:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 else:
