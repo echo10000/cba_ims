@@ -1,4 +1,4 @@
-# Frontend Interactivity Foundation, Phase 2 Alpine.js & Phase 3A/3B HTMX — AI Handoff
+# Frontend Interactivity Foundation, Phase 2 Alpine.js & Phase 3A/3B/3C HTMX — AI Handoff
 
 ## 1. Executive Summary
 
@@ -6,7 +6,9 @@ The frontend interactivity stack combines **HTMX** (v1.9.12) and **Alpine.js** (
 - **Phase 1**: Infrastructure vendored, global CSRF configured, HX-Request cache bypass in Service Worker, no hx-boost on navigation.
 - **Phase 2**: Low-risk Alpine.js UI state implemented across collapsible filter panels, bulk QR checkbox selection, and inline safe action confirmations.
 - **Phase 3A**: HTMX read-only search, filtering, and scoped pagination for the **Inventory Asset List** (`AssetListView`).
-- **Phase 3B (CURRENT COMPLETED)**: HTMX read-only search, filtering, and scoped pagination for the **Consumable Supply List** (`SupplyListView`).
+- **Phase 3B**: HTMX read-only search, filtering, and scoped pagination for the **Consumable Supply List** (`SupplyListView`).
+- **Phase 3C**: HTMX read-only search, filtering, and scoped pagination for **Current Assignments** (`CurrentAssignmentListView`).
+- **Phase 4 (CURRENT COMPLETED)**: Visual Migration of Global Shell & Shared Design Foundation to **DESIGN.md v2.0 (Modern Workspace Direction)**.
 
 All backend business logic, Django permissions, queryset scoping (Admin full access, Dean read-only catalog/transactions, Chair read-only catalog + department-scoped transactions, Faculty redirect to `assignments:my_accountability`), models, forms, CSRF protections, print layouts, and ledger/disposal workflows remain strictly preserved.
 
@@ -68,10 +70,6 @@ Replaced disruptive browser `window.confirm()` popups with inline, accessible Al
 - Excluded high-risk workflows (strictly untouched):
   - Disposal completion, stock in/out, physical inventory verification, borrowing release/return, maintenance state transitions, transfer approvals.
 
-### Code Cleanup & Duplication Removal
-- In `static/js/custom.js`: Removed the obsolete `.filter-collapse-btn` vanilla event listener to prevent duplicate event triggers.
-- Retained global `.confirm-action` and `form[data-confirm]` handlers in `custom.js` for all non-migrated complex workflows.
-
 ---
 
 ## 4. Phase 3A Implementation: HTMX Inventory Asset List
@@ -79,71 +77,94 @@ Replaced disruptive browser `window.confirm()` popups with inline, accessible Al
 1. **Partial Extraction (`templates/inventory/partials/_asset_results.html`)**:
    - Contains result counter (`Showing X–Y of Z assets`), desktop table view, mobile card view, scoped pagination controls, and institutional empty state.
    - When 0 assets match, displays a clean institutional empty state with a "Clear Filters" button if filters are active; no empty table or dead headers are rendered.
-   - Includes asset thumbnails, property numbers, serials, and institutional condition/status badges.
-
 2. **Full Page Wrapper (`templates/inventory/asset_list.html`)**:
-   - Hosts the Alpine-driven filter toggle panel and top toolbar.
-   - All search inputs and filter selects are wrapped in a unified form `#assetFilterForm` with `action="{% url 'inventory:asset_list' %}"`.
    - Live Search: `hx-trigger="keyup changed delay:350ms, search"`, `hx-target="#asset-results-container"`, `hx-push-url="true"`, `hx-indicator="#asset-loading-indicator"`, `hx-include="#assetFilterForm"`.
-   - Dropdown Filters (Category, Brand, Department, Location, Condition, Status): `hx-trigger="change"`, `hx-target="#asset-results-container"`, `hx-push-url="true"`, `hx-indicator="#asset-loading-indicator"`, `hx-include="#assetFilterForm"`.
-   - Restrained Loading Indicator: `#asset-loading-indicator` is an inline 0.85rem spinner tucked inside the search input group using `.htmx-indicator`. No full-screen overlays, table grayouts, or jarring skeleton layouts.
-   - Dynamic Results Container: `<div id="asset-results-container">{% include 'inventory/partials/_asset_results.html' %}</div>`.
-
+   - Dropdown Filters (Category, Brand, Department, Location, Condition, Status): `hx-trigger="change"`, `hx-target="#asset-results-container"`.
+   - Restrained Loading Indicator: `#asset-loading-indicator` inline 0.85rem spinner.
 3. **Backend View Enhancement (`AssetListView` in `apps/inventory/views.py`)**:
-   - Implements `get_template_names()` to return `_asset_results.html` for HTMX requests while bypassing history restore and boosted navigation.
-   - Zero duplication of queryset filtering, role-based scoping, or pagination context logic.
-
-4. **Scoped Pagination & Progressive Fallback**:
-   - Pagination targets `#asset-results-container` with URL push and loading indicator.
-   - Full standard GET fallback for non-JS clients.
+   - Implements `get_template_names()` returning `_asset_results.html` for HTMX requests while bypassing history restore and boosted navigation.
 
 ---
 
 ## 5. Phase 3B Implementation: HTMX Consumable Supply List
 
 1. **Partial Extraction (`templates/supplies/partials/_supply_results.html`)**:
-   - Wraps catalog card container with dynamic count badge (`{{ page_obj.paginator.count }}`).
-   - Contains desktop table view (`.desktop-table`), mobile card list (`.mobile-card-list`), scoped pagination, and institutional empty state.
-   - When 0 supplies match: renders institutional empty state with `bi-archive`, "No Supplies Found", and "Clear Filters" button if filters are active; no empty table or dead headers are rendered.
-   - Displays real-time on-hand stock balances, reorder level thresholds, stock health badges (Out of Stock, Low Stock, In Stock), and role-checked action buttons.
-
+   - Dynamic count badge, desktop table view, mobile card list, scoped pagination, and institutional empty state.
 2. **Full Page Wrapper (`templates/supplies/supply_list.html`)**:
-   - Hosts page header with live Low Stock alert badge and action links (`Stock In`, `Stock Out`, `New Supply Item`).
-   - Hosts Alpine-driven mobile filter collapse panel (`open: <has_filters>`).
-   - Form `#supplyFilterForm` with `hx-get="{% url 'supplies:supply_list' %}"`, `hx-target="#supply-results-container"`, `hx-push-url="true"`, `hx-indicator="#supply-loading-indicator"`.
    - Live Search: `#supplySearchInput` with `hx-trigger="keyup changed delay:350ms, search"`, `hx-include="#supplyFilterForm"`, `hx-target="#supply-results-container"`, `hx-push-url="true"`.
-   - Dropdown Filters (Category, Brand, Stock Status, State): `hx-trigger="change"`, `hx-include="#supplyFilterForm"`, `hx-target="#supply-results-container"`, `hx-push-url="true"`.
-   - Restrained Loading Indicator: `#supply-loading-indicator` is an inline 0.85rem spinner inside the search input group (`.htmx-indicator`).
-   - Dynamic Results Container: `<div id="supply-results-container">{% include 'supplies/partials/_supply_results.html' %}</div>`.
-
+   - Dropdown Filters (Category, Brand, Stock Status, State): `hx-trigger="change"`, `hx-include="#supplyFilterForm"`, `hx-target="#supply-results-container"`.
+   - Restrained Loading Indicator: `#supply-loading-indicator` inline spinner.
 3. **Backend View Enhancement (`SupplyListView` in `apps/supplies/views.py`)**:
-   - Implements `get_template_names()`:
-     ```python
-     def get_template_names(self):
-         if (
-             self.request.headers.get('HX-Request') == 'true'
-             and self.request.headers.get('HX-History-Restore-Request') != 'true'
-             and self.request.headers.get('HX-Boosted') != 'true'
-         ):
-             return ['supplies/partials/_supply_results.html']
-         return [self.template_name]
-     ```
-   - Zero duplication of `get_queryset()` stock calculations, multi-field search (`supply_code`, `item_name`, `brand__name`, `category__name`), filter parameters, or context data.
-   - Back/Forward history navigation (`HX-History-Restore-Request: true`) cleanly returns the full page shell `supplies/supply_list.html`.
-   - Purely read-only: no changes to transaction calculations, ledger models, or stock operation forms.
-
-4. **Scoped HTMX Pagination**:
-   - Scoped pagination in `_supply_results.html` targets `#supply-results-container` with `hx-push-url="true"` and `hx-indicator="#supply-loading-indicator"`.
-   - Preserves search and filter parameters across page changes via `query_string` context variable.
-   - Standard `href` fallback on all page links.
-
-5. **Security & Role-Based Access Control**:
-   - Strictly enforced via `SupplyViewAccessMixin`. Admin, Dean, and Department Chair access verified with HTMX headers (HTTP 200).
-   - Faculty accounts blocked and redirected to `assignments:my_accountability`.
+   - Implements `get_template_names()` returning `_supply_results.html` for HTMX requests.
 
 ---
 
-## 6. Verification & Testing Matrix
+## 6. Phase 3C Implementation: HTMX Current Assignments
+
+1. **Partial Extraction (`templates/assignments/partials/_assignment_results.html`)**:
+   - Contains result counter, desktop table view, mobile card list, scoped pagination, and institutional empty state.
+   - Displays accountability tags, property numbers, employee assignment metadata, and action buttons.
+2. **Full Page Wrapper (`templates/assignments/current_assignment_list.html`)**:
+   - Live Search: `#assignmentSearchInput` with debounced trigger.
+   - Dropdown Filters: Department and Employee with `change` trigger.
+   - Loading indicator: `#assignment-loading-indicator`.
+3. **Backend View Enhancement (`CurrentAssignmentListView` in `apps/assignments/views.py`)**:
+   - Implements `get_template_names()` returning `_assignment_results.html` for HTMX requests.
+   - Preserved full RBAC scoping: Admin & Dean unrestricted, Department Chair scoped to department, Faculty redirected to `my_accountability`.
+
+---
+
+## 7. Approved Modern Workspace Visual Direction (DESIGN.md v2.0)
+
+On October 7, 2026, the project design contract was officially upgraded from **DESIGN.md v1.0** to **DESIGN.md v2.0**, establishing the **Modern Workspace Direction** as the canonical visual contract for all future UI work.
+
+### Core Architectural Decisions & Adjustments
+1. **Retirement of Dark Heavy Sidebar:** The legacy dark slate shell (`#0f172a` / `#0b1120`) and ice-blue indicator stripe (`#38bdf8`) are officially superseded and no longer authoritative. The new navigation standard is a light neutral sidebar canvas (`#f8fafc`) with a hairline 1px divider (`#e2e8f0`) and soft blue active pill tint (`#eff6ff` / `#1d4ed8`).
+2. **Modern Institutional Blue (`#1d4ed8`):** Replaces deep navy `#1e3a8a` as the primary interactive accent, providing a lighter, contemporary feel with high contrast (7.3:1 vs white, passing WCAG AAA Large / AA Body).
+3. **CRM / Database Table Grid:** Replaces traditional Bootstrap zebra striping and 2px table header borders with clean white rows (`#ffffff`), hairline dividers (`#f1f5f9`), soft hover rows (`#f8fafc`), and soft blue active row selection (`#eff6ff`).
+4. **Scale & Radii Harmonization:** Standardized to 8px panel/card radius, 6px input/button radius, and 4px micro tags/badges.
+5. **Dashboard Operational Metrics:** Dashboard metric display is decoupled from arbitrary 4-metric lock-ins. Preserves all operational indicators via either an integrated horizontal summary strip or compact white metric cells/cards.
+6. **Optional Global Search:** A `Ctrl+K` / global-search input is not mandatory in the topbar unless a genuine global search backend service is implemented.
+7. **Restrained HTMX Loading State Standard:** Inline spinner indicators (`.htmx-indicator`) inside search input groups remain the default loading pattern. Shimmer/skeleton loading is not a default pattern and is restricted to proven UX needs.
+8. **Comprehensive RBAC Preservation:** All authorization mechanisms must be preserved across future UI styling passes, including `request.user.role`, `request.user.is_admin`, custom permission mixins (`AssignmentViewAccessMixin`, `RoleRequiredMixin`), role-specific template conditionals, and department queryset scoping.
+9. **Scanner & Print View Safeguards:** Barcode/QR scanner viewports (`scanner.html`) and `@media print` high-contrast black ink rules remain strictly protected.
+
+---
+
+## 8. Phase 4: Global Shell & Shared Design Foundation Migration (DESIGN.md v2.0)
+
+Completed the foundational migration to align the shared global shell and design tokens with **DESIGN.md v2.0 (Modern Workspace Direction)**. Individual application modules were intentionally not redesigned in this phase.
+
+### Target Files Updated
+1. `templates/base.html`:
+   - Updated `:root` CSS variables to v2.0 tokens (`--cba-primary: #1d4ed8`, `--cba-canvas-bg: #f8fafc`, `--sidebar-bg: #f8fafc`, `--sidebar-border: #e2e8f0`).
+   - Converted `#desktop-sidebar` and `.offcanvas.sidebar-offcanvas` to light workspace design with 1px right border (`#e2e8f0`), Slate text (`#475569`), soft blue active pill (`#eff6ff` / `#1d4ed8`), and removed the legacy bright-blue left stripe.
+   - Refined `.navbar-top` into a compact 54px header with white surface, subtle bottom border (`#e2e8f0`), restrained typography, and accessible 44px min tap targets for mobile drawer toggle.
+   - Set `<meta name="theme-color" content="#ffffff">` and updated stylesheet versioning to `?v=3.0`.
+   - Applied full v2.0 typography scale across `h1`-`h4` and responsive containers.
+2. `static/css/custom.css`:
+   - Updated all design tokens: Primary Blue (`#1d4ed8`), Hover (`#1e40af`), Danger (`#dc2626`), Focus ring (`0 0 0 3px rgba(37,99,235,0.18)`).
+   - Standardized component radii: Panels & Cards (8px), Buttons & Form Controls (6px), Badges & Chips (4px).
+   - Replaced old badge styling with subtle tint + 1px border + dark semantic text across all asset statuses and conditions.
+   - Configured CRM / database-style data tables with quiet headers (`#f8fafc`), hairline separators (`#f1f5f9`), and soft hover states.
+   - Modernized `.btn-primary-cba`, `.btn-secondary-cba`, `.btn-danger-cba`, and `.btn-outline-cba`.
+   - Updated system alerts (`.cba-alert`) and pagination controls (`.cba-pagination`).
+3. `templates/includes/messages.html`:
+   - Polished alert spacing and modern dismissible button alignment.
+4. `templates/includes/pagination.html`:
+   - Validated semantic markup compatibility with the 6px radius, neutral border pagination styling.
+
+### Visual Verification Across Viewports
+Verified live rendered pages using MCP collaborative preview tools across 1920px desktop, 1366px laptop, tablet (`ipad-air`), and mobile (`iphone-12-pro`):
+- **Dashboard (`/dashboard/`)**: Clean light neutral shell, KPI cards with tabular-nums metric values, responsive grid reflow.
+- **Asset List (`/inventory/`)**: CRM-style table with quiet headers and 4px status badges.
+- **Supply List (`/supplies/`)**: Clean table grid and restrained action buttons.
+- **Add Asset Form (`/inventory/assets/add/`)**: 6px form controls, standard focus rings, natural action buttons.
+- **Faculty Portal & My Borrowings (`/borrowing/my-borrowings/`)**: Scoped sidebar navigation, zero dark-shell remnants, 0 horizontal overflow.
+
+---
+
+## 9. Verification & Testing Matrix
 
 | Verification Check | Method | Result | Notes |
 | :--- | :--- | :--- | :--- |
@@ -151,22 +172,10 @@ Replaced disruptive browser `window.confirm()` popups with inline, accessible Al
 | **Full Inventory Test Suite** | `python manage.py test apps.inventory` | **PASSED (58/58)** | All inventory tests passing cleanly |
 | **SupplyViewTests (Supplies)** | Automated Django tests | **PASSED (18/18)** | Supplies List partial, history restore, debounced search, dropdown filters, combined filters, empty state, scoped pagination, and RBAC verified |
 | **Full Supplies Test Suite** | `python manage.py test apps.supplies` | **PASSED (47/47)** | All supplies model, calculation, concurrency, audit, and view tests passing cleanly |
-| **History Restore Request** | `HTTP_HX_HISTORY_RESTORE_REQUEST` test | **PASSED** | Correctly yields full page wrapper `supply_list.html` |
-| **Debounced Search Trigger** | Template & test inspection | **PASSED** | `keyup changed delay:350ms, search` with `hx-include="#supplyFilterForm"` |
-| **Dropdown Filter Trigger** | Template & test inspection | **PASSED** | `change` trigger combines active search query and select values |
-| **Empty State Rendering** | Automated test (`q=NON_EXISTENT_QUERY_XYZ`) | **PASSED** | Displays "No Supplies Found" + "Clear Filters"; no `<table>` or `<thead>` rendered |
-| **RBAC Scoping under HTMX** | Automated test | **PASSED** | Admin, Dean, and Chair receive HTTP 200; Faculty is redirected to `my_accountability` |
-| **Non-targeted Modules** | Git diff inspection | **PASSED** | Assignments, Audit Log, Disposals, QR Printing untouched |
-
----
-
-## 7. Architectural Guardrails & Next Steps
-
-### Guardrails (Strictly Preserved)
-- No modifications made to `StockInView`, `StockOutView`, `StockAdjustmentView`, `services.py`, transaction models, stock balances, or transaction forms.
-- Server remains the single authoritative source of truth for stock calculations.
-- No unscoped backend endpoints created.
-- Progressive enhancement guaranteed for non-JS/fallback clients.
-
-### Next Pending Task
-- **Phase 3C**: Assignments & Audit Log read-only HTMX search/filtering (`CurrentAssignmentListView`, `AuditLogListView`, etc.).
+| **CurrentAssignmentHTMXTests** | Automated Django tests | **PASSED (9/9)** | Current Assignment partial, history restore, boosted request, multi-field search, dropdown filters, combined filters, empty states, scoped pagination, and RBAC scoping verified |
+| **Full Assignments Test Suite** | `python manage.py test apps.assignments` | **PASSED (27/27)** | All assignments model, service, form, view, RBAC, and HTMX tests passing cleanly |
+| **Full Borrowing Test Suite** | `python manage.py test apps.borrowing` | **PASSED (19/19)** | Borrowing requests, approvals, returns, and role access verified |
+| **Live Browser Render Verification** | MCP preview tools | **PASSED** | Inspected Dashboard, Asset List, Supply List, Add Asset Form, and Faculty Portal across 1920px, 1366px, tablet, and mobile |
+| **Horizontal Overflow Check** | JS evaluate `scrollWidth <= clientWidth` | **PASSED (0 overflow)** | Evaluated across mobile and desktop pages; zero overflow |
+| **Mobile Tap Targets** | Computed dimension check | **PASSED (>= 44px)** | Hamburger menu, touch targets, buttons, and form controls meet WCAG criteria |
+| **RBAC & Mixins Protection** | Automated tests + UI checks | **PASSED** | Faculty cannot view admin links; Admin/Dean/Chair access preserved |

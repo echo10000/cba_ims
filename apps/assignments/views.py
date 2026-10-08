@@ -54,6 +54,15 @@ class CurrentAssignmentListView(AssignmentViewAccessMixin, ListView):
     context_object_name = 'assignments'
     paginate_by = 15
 
+    def get_template_names(self):
+        if (
+            self.request.headers.get('HX-Request') == 'true'
+            and self.request.headers.get('HX-History-Restore-Request') != 'true'
+            and self.request.headers.get('HX-Boosted') != 'true'
+        ):
+            return ['assignments/partials/_assignment_results.html']
+        return [self.template_name]
+
     def get_queryset(self):
         user = self.request.user
         qs = AssetAssignment.objects.filter(status=AssetAssignment.Status.ACTIVE).select_related(

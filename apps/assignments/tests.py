@@ -473,3 +473,283 @@ class AssignmentViewsAndRBACTests(AssignmentBaseTestCase):
         res = self.client.post(reverse('inventory:asset_delete', kwargs={'asset_code': self.asset_laptop.asset_code}))
         self.assertRedirects(res, reverse('inventory:asset_detail', kwargs={'asset_code': self.asset_laptop.asset_code}))
         self.assertTrue(Asset.objects.filter(asset_code=self.asset_laptop.asset_code).exists())
+
+
+class CurrentAssignmentHTMXTests(AssignmentBaseTestCase):
+    """
+    Phase 3C tests: HTMX read-only search, filtering, pagination, and RBAC scoping
+    for Current Assignments.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.client = Client()
+        self.client.force_login(self.admin_user)
+
+        # Setup standard active assignments
+        self.assign_laptop = services.assign_asset(
+            asset=self.asset_laptop,
+            employee=self.emp_fac_ba,
+            assigned_by=self.admin_user,
+            purpose='BA Classroom Instruction',
+            remarks='Serial CBA-IT-00010'
+        )
+        self.assign_printer = services.assign_asset(
+            asset=self.asset_printer,
+            employee=self.emp_fac_acct,
+            assigned_by=self.admin_user,
+            purpose='Accountancy Printing Lab',
+            remarks='Shared network printer'
+        )
+
+    def test_current_assignment_list_normal_get_returns_full_page(self):
+        """Standard full-page GET returns current_assignment_list.html and renders results container."""
+        resp = self.client.get(reverse('assignments:current_list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'assignments/current_assignment_list.html')
+        self.assertTemplateUsed(resp, 'assignments/partials/_assignment_results.html')
+        self.assertContains(resp, 'id="assignmentFilterForm"')
+        self.assertContains(resp, 'id="assignment-results-container"')
+        self.assertContains(resp, 'id="assignmentSearchInput"')
+
+    def test_current_assignment_list_htmx_partial_response(self):
+        """HTMX GET returns only _assignment_results.html partial without full page shell."""
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'assignments/partials/_assignment_results.html')
+        self.assertTemplateNotUsed(resp, 'assignments/current_assignment_list.html')
+        self.assertNotContains(resp, 'id="assignmentFilterForm"')
+        self.assertContains(resp, 'desktop-table')
+        self.assertContains(resp, 'mobile-card-list')
+        self.assertContains(resp, 'CBA-IT-00010')
+
+    def test_current_assignment_list_htmx_history_restore_returns_full_page(self):
+        """Browser back/forward cache restore sends HX-History-Restore-Request and gets full page."""
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true', 'hx-history-restore-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'assignments/current_assignment_list.html')
+        self.assertContains(resp, 'id="assignmentFilterForm"')
+
+    def test_current_assignment_list_htmx_boosted_returns_full_page(self):
+        """HX-Boosted request returns full page shell."""
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true', 'hx-boosted': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'assignments/current_assignment_list.html')
+        self.assertContains(resp, 'id="assignmentFilterForm"')
+
+    def test_current_assignment_list_htmx_search_filtering(self):
+        """HTMX search filters assignments by asset code, item name, and employee details."""
+        # 1. Search by asset code
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'q': 'CBA-IT-00010'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-IT-00010')
+        self.assertNotContains(resp, 'CBA-OE-00010')
+
+        # 2. Search by item name
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'q': 'LaserJet'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-OE-00010')
+        self.assertNotContains(resp, 'CBA-IT-00010')
+
+        # 3. Search by employee name
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'q': 'Maria'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Maria Cruz')
+        self.assertNotContains(resp, 'Juan Dela Cruz')
+
+        # 4. Search by employee ID
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'q': 'EMP-FAC-002'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Juan Dela Cruz')
+        self.assertNotContains(resp, 'Maria Cruz')
+
+    def test_current_assignment_list_htmx_filters_and_combination(self):
+        """HTMX filters by department, category, condition, and combination."""
+        # 1. Department filter
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'department': self.dept_ba.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-IT-00010')
+        self.assertNotContains(resp, 'CBA-OE-00010')
+
+        # 2. Category filter
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'category': self.cat_oe.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-OE-00010')
+        self.assertNotContains(resp, 'CBA-IT-00010')
+
+        # 3. Condition filter
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {'condition': Asset.Condition.GOOD},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-IT-00010')
+        self.assertContains(resp, 'CBA-OE-00010')
+
+        # 4. Combined search and filters
+        resp = self.client.get(
+            reverse('assignments:current_list'),
+            {
+                'q': 'Dell',
+                'department': self.dept_ba.pk,
+                'category': self.cat_it.pk,
+                'condition': Asset.Condition.GOOD,
+            },
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'CBA-IT-00010')
+        self.assertNotContains(resp, 'CBA-OE-00010')
+
+    def test_current_assignment_list_htmx_pagination(self):
+        """HTMX pagination handles 15+ items and preserves active query params."""
+        # Create 15 additional active assignments with cat_it (total IT = 16, exceeds paginate_by=15)
+        for i in range(15):
+            asset = Asset.objects.create(
+                asset_code=f'CBA-IT-PAGE-{i+1:03d}',
+                item_name=f'Bulk Laptop {i+1}',
+                category=self.cat_it,
+                department=self.dept_ba,
+                current_location=self.loc_ba,
+                condition=Asset.Condition.GOOD,
+                status=Asset.Status.AVAILABLE,
+                acquisition_cost=Decimal('45000.00'),
+                created_by=self.admin_user
+            )
+            services.assign_asset(
+                asset=asset,
+                employee=self.emp_fac_ba,
+                assigned_by=self.admin_user,
+                purpose='Batch test'
+            )
+
+        # Page 1
+        resp_p1 = self.client.get(
+            reverse('assignments:current_list'),
+            {'category': self.cat_it.pk, 'page': '1'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_p1.status_code, 200)
+        self.assertTrue(resp_p1.context['page_obj'].has_next())
+        self.assertEqual(len(resp_p1.context['assignments']), 15)
+        self.assertIn(f'category={self.cat_it.pk}', resp_p1.context['query_string'])
+
+        # Page 2
+        resp_p2 = self.client.get(
+            reverse('assignments:current_list'),
+            {'category': self.cat_it.pk, 'page': '2'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_p2.status_code, 200)
+        self.assertTrue(resp_p2.context['page_obj'].has_previous())
+        self.assertEqual(len(resp_p2.context['assignments']), 1)
+        self.assertIn(f'category={self.cat_it.pk}', resp_p2.context['query_string'])
+
+    def test_current_assignment_list_empty_state_with_and_without_filters(self):
+        """Institutional empty state correctly distinguishes no match vs empty list."""
+        # 1. Non-matching search query -> show Clear Filters
+        resp_filter = self.client.get(
+            reverse('assignments:current_list'),
+            {'q': 'NonExistentEquipment12345'},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_filter.status_code, 200)
+        self.assertContains(resp_filter, 'No Active Assignments Found')
+        self.assertContains(resp_filter, 'No asset assignments match your current search or filter criteria.')
+        self.assertContains(resp_filter, 'Clear Filters')
+        self.assertNotContains(resp_filter, '<table')
+
+        # 2. When no assignments exist at all
+        AssetAssignment.objects.all().delete()
+        resp_empty = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_empty.status_code, 200)
+        self.assertContains(resp_empty, 'There are no active asset assignments currently recorded.')
+        self.assertContains(resp_empty, 'Assign First Asset')
+        self.assertNotContains(resp_empty, 'Clear Filters')
+        self.assertNotContains(resp_empty, '<table')
+
+    def test_current_assignment_list_rbac_and_scoping_htmx(self):
+        """RBAC scoping rules are strictly enforced during HTMX requests."""
+        # 1. Admin gets both BA and ACCT assignments via HTMX
+        resp_admin = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_admin.status_code, 200)
+        self.assertContains(resp_admin, 'CBA-IT-00010')
+        self.assertContains(resp_admin, 'CBA-OE-00010')
+
+        # 2. Dean gets both BA and ACCT assignments via HTMX
+        self.client.force_login(self.dean_user)
+        resp_dean = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_dean.status_code, 200)
+        self.assertContains(resp_dean, 'CBA-IT-00010')
+        self.assertContains(resp_dean, 'CBA-OE-00010')
+
+        # 3. BA Dept Chair gets ONLY BA assignments via HTMX
+        self.client.force_login(self.chair_ba_user)
+        resp_chair = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_chair.status_code, 200)
+        self.assertContains(resp_chair, 'CBA-IT-00010')
+        self.assertNotContains(resp_chair, 'CBA-OE-00010')
+
+        # 4. Dept Chair cannot bypass scoping by supplying another department parameter
+        resp_chair_bypass = self.client.get(
+            reverse('assignments:current_list'),
+            {'department': self.dept_acct.pk},
+            headers={'hx-request': 'true'}
+        )
+        self.assertEqual(resp_chair_bypass.status_code, 200)
+        self.assertContains(resp_chair_bypass, 'CBA-IT-00010')
+        self.assertNotContains(resp_chair_bypass, 'CBA-OE-00010')
+
+        # 5. Faculty user is redirected to my_accountability even with HTMX
+        self.client.force_login(self.faculty_ba_user)
+        resp_fac = self.client.get(
+            reverse('assignments:current_list'),
+            headers={'hx-request': 'true'}
+        )
+        self.assertRedirects(resp_fac, reverse('assignments:my_accountability'))

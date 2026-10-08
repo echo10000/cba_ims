@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}CBA IMS{% endblock %}</title>
 
@@ -18,8 +18,8 @@
     <!-- Bootstrap Icons 1.10.5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     
-    <!-- Custom CSS (DESIGN.md Design System - cache busted) -->
-    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=2.4">
+    <!-- Custom CSS (DESIGN.md v2.0 Design System - cache busted) -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=3.1">
 
     <!-- Core Frontend Interactivity Libraries (Vendored locally) -->
     <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
@@ -32,37 +32,57 @@
         [x-cloak] { display: none !important; }
 
         :root {
-            --sidebar-width: 250px;
-            --sidebar-bg: #0f172a;
-            --sidebar-brand-bg: #0b1120;
-            --sidebar-active-bg: #1e293b;
-            --sidebar-active-border: #3b82f6;
-            --topbar-height: 56px;
-            --content-bg: #f8fafc;
-        }
-        body {
-            background: var(--content-bg);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            overflow-x: hidden;
-            color: #0f172a;
+            --sidebar-width: 240px;
+            --sidebar-bg: #f8fafc;
+            --sidebar-border: #e2e8f0;
+            --sidebar-text: #475569;
+            --sidebar-text-hover: #0f172a;
+            --sidebar-active-bg: #eff6ff;
+            --sidebar-active-text: #1d4ed8;
+            --topbar-height: 54px;
+            --cba-canvas-bg: #f8fafc;
+            --cba-surface-card: #ffffff;
+            --cba-surface-subtle: #f1f5f9;
+            --cba-surface-hover: #f8fafc;
+            --cba-primary: #1d4ed8;
+            --cba-primary-hover: #1e40af;
+            --cba-primary-light: #eff6ff;
+            --cba-border-subtle: #e2e8f0;
+            --cba-border-medium: #cbd5e1;
+            --cba-border-focus: #2563eb;
+            --cba-text-primary: #0f172a;
+            --cba-text-secondary: #475569;
+            --cba-text-muted: #64748b;
         }
 
-        /* Desktop Fixed Sidebar */
+        body {
+            background-color: var(--cba-canvas-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow-x: hidden;
+            color: var(--cba-text-primary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Desktop Fixed Light Sidebar */
         #desktop-sidebar {
             width: var(--sidebar-width);
             position: fixed;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             height: 100vh;
             background: var(--sidebar-bg);
-            color: #f1f5f9;
+            color: var(--cba-text-primary);
             z-index: 1030;
             overflow-y: auto;
             overflow-x: hidden;
-            border-right: 1px solid #1e293b;
+            border-right: 1px solid var(--sidebar-border);
         }
         #desktop-sidebar::-webkit-scrollbar { width: 4px; }
-        #desktop-sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
-        #desktop-sidebar::-webkit-scrollbar-track { background: var(--sidebar-bg); }
+        #desktop-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        #desktop-sidebar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        #desktop-sidebar::-webkit-scrollbar-track { background: transparent; }
 
         /* Desktop main content offset */
         @media (min-width: 992px) {
@@ -71,25 +91,27 @@
             }
         }
 
-        /* Institutional Sidebar Brand */
+        /* Modern Workspace Sidebar Brand */
         .sidebar-brand {
-            padding: 14px 16px;
-            background: var(--sidebar-brand-bg);
-            border-bottom: 1px solid #1e293b;
-            color: #ffffff;
+            padding: 0 16px;
+            height: var(--topbar-height);
+            background: #ffffff;
+            border-bottom: 1px solid var(--sidebar-border);
+            color: var(--cba-text-primary);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .sidebar-brand:hover {
-            color: #ffffff;
+            color: var(--cba-text-primary);
+            text-decoration: none;
         }
         .sidebar-brand-mark {
-            width: 32px;
-            height: 32px;
-            background: #1e3a8a;
-            border: 1px solid #2563eb;
+            width: 30px;
+            height: 30px;
+            background: var(--cba-primary);
+            border: 1px solid #1e40af;
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -101,105 +123,186 @@
         .sidebar-brand-title {
             font-weight: 700;
             font-size: 1.05rem;
-            letter-spacing: -0.01em;
-            color: #ffffff;
+            letter-spacing: -0.015em;
+            color: var(--cba-text-primary);
             line-height: 1.2;
         }
         .sidebar-brand-subtitle {
-            font-size: 0.68rem;
-            color: #94a3b8;
+            font-size: 0.6875rem;
+            color: var(--cba-text-muted);
             font-weight: 500;
             letter-spacing: 0.02em;
             line-height: 1.2;
         }
 
-        /* Nav items */
-        .sidebar-nav { padding: 8px 0 28px; }
+        /* Sidebar Navigation Items */
+        .sidebar-nav {
+            padding: 8px 8px 28px;
+        }
         .sidebar-nav .nav-section {
-            font-size: 0.65rem;
+            font-size: 0.6875rem;
             text-transform: uppercase;
-            color: #64748b;
-            font-weight: 700;
-            padding: 16px 16px 5px;
-            letter-spacing: 0.08em;
+            color: var(--cba-text-muted);
+            font-weight: 600;
+            padding: 14px 10px 4px;
+            letter-spacing: 0.05em;
         }
         .sidebar-nav .nav-link {
             display: flex;
             align-items: center;
-            padding: 8px 16px;
-            color: #94a3b8;
+            padding: 6px 10px;
+            color: var(--sidebar-text);
             text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 400;
-            transition: all 0.12s ease-in-out;
-            border-radius: 0;
-            border-left: 3px solid transparent;
-            min-height: 38px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: background-color 0.12s ease, color 0.12s ease;
+            border-radius: 6px;
+            border-left: none;
+            min-height: 34px;
+            gap: 8px;
         }
         .sidebar-nav .nav-link:hover {
-            color: #f8fafc;
-            background: rgba(255, 255, 255, 0.04);
+            color: var(--sidebar-text-hover);
+            background: var(--cba-surface-subtle);
         }
         .sidebar-nav .nav-link.active {
-            color: #ffffff;
+            color: var(--sidebar-active-text);
             font-weight: 600;
             background: var(--sidebar-active-bg);
-            border-left-color: var(--sidebar-active-border);
+            border-left: none;
         }
         .sidebar-nav .nav-link i {
             width: 18px;
-            margin-right: 10px;
+            margin-right: 0;
             text-align: center;
-            font-size: 1rem;
-            opacity: 0.85;
+            font-size: 0.95rem;
+            color: var(--cba-text-muted);
+            flex-shrink: 0;
+        }
+        .sidebar-nav .nav-link:hover i {
+            color: var(--sidebar-text-hover);
         }
         .sidebar-nav .nav-link.active i {
-            opacity: 1;
-            color: #60a5fa;
+            color: var(--sidebar-active-text);
         }
 
-        /* Offcanvas dark theme */
+        /* Offcanvas Light Theme */
         .offcanvas.sidebar-offcanvas {
             background: var(--sidebar-bg);
-            color: #f1f5f9;
-            max-width: 280px;
-            border-right: 1px solid #1e293b;
+            color: var(--cba-text-primary);
+            max-width: 270px;
+            border-right: 1px solid var(--sidebar-border);
+        }
+        .offcanvas.sidebar-offcanvas .offcanvas-header {
+            height: var(--topbar-height);
+            padding: 0 16px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--sidebar-border);
         }
         .offcanvas.sidebar-offcanvas .btn-close {
-            filter: invert(1);
+            filter: none;
+            opacity: 0.6;
+            padding: 0.5rem;
+        }
+        .offcanvas.sidebar-offcanvas .btn-close:hover {
+            opacity: 1;
         }
 
-        /* Top navbar */
+        /* Top Navbar */
         .navbar-top {
             background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            box-shadow: 0 1px 2px 0 rgba(0,0,0,.03);
+            border-bottom: 1px solid var(--cba-border-subtle);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
             min-height: var(--topbar-height);
             z-index: 1020;
+            padding: 0 1.25rem;
+        }
+        .topbar-menu-btn {
+            width: 36px;
+            height: 36px;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid var(--cba-border-medium);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--cba-text-secondary);
+            transition: all 0.15s ease;
+        }
+        .topbar-menu-btn:hover {
+            background: var(--cba-surface-subtle);
+            color: var(--cba-text-primary);
+            border-color: var(--cba-border-medium);
+        }
+        .topbar-badge {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background-color: var(--cba-surface-subtle);
+            color: var(--cba-text-secondary);
+            border: 1px solid var(--cba-border-subtle);
         }
 
-        /* Content area */
+        /* Typography Hierarchy (DESIGN.md v2.0) */
+        h1, .h1 {
+            font-size: 1.375rem; /* 22px */
+            font-weight: 700;
+            line-height: 1.3;
+            letter-spacing: -0.015em;
+            color: var(--cba-text-primary);
+        }
+        h2, .h2 {
+            font-size: 1.1875rem; /* 19px */
+            font-weight: 600;
+            line-height: 1.35;
+            letter-spacing: -0.01em;
+            color: var(--cba-text-primary);
+        }
+        h3, .h3 {
+            font-size: 1.0625rem; /* 17px */
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--cba-text-primary);
+        }
+        h4, .h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--cba-text-primary);
+        }
+
+        /* Main Workspace Content Area */
         .main-container {
-            padding: 24px;
-            max-width: 1600px;
-            min-height: calc(100vh - var(--topbar-height) - 60px);
+            padding: 20px 24px;
+            max-width: 100%;
+            min-height: calc(100vh - var(--topbar-height) - 52px);
         }
 
         /* Card defaults */
         .card {
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 2px 0 rgba(0,0,0,.03);
-            border-radius: 6px;
+            border: 1px solid var(--cba-border-subtle);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+            border-radius: 8px;
             background-color: #ffffff;
         }
 
-        /* Mobile adjustments */
+        /* Mobile adjustments (<768px) */
         @media (max-width: 767.98px) {
             .main-container { padding: 12px; }
-            .sidebar-nav .nav-link { min-height: 44px; }
-            h1, .h1 { font-size: 1.35rem; }
-            h2, .h2 { font-size: 1.2rem; }
-            h4, .h4 { font-size: 1.05rem; }
+            .topbar-menu-btn {
+                width: 44px;
+                height: 44px;
+                min-height: 44px;
+            }
+            .sidebar-nav .nav-link {
+                min-height: 44px;
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
             .form-control, .form-select {
                 font-size: 16px !important;
                 min-height: 44px;
@@ -215,9 +318,18 @@
             .table { font-size: 0.85rem; }
         }
 
-        /* Tablet adjustments */
+        /* Tablet adjustments (768px - 991.98px) */
         @media (min-width: 768px) and (max-width: 991.98px) {
             .main-container { padding: 16px; }
+            .topbar-menu-btn {
+                width: 40px;
+                height: 40px;
+                min-height: 40px;
+            }
+            .sidebar-nav .nav-link {
+                min-height: 40px;
+                padding: 8px 12px;
+            }
         }
 
         /* Print */
@@ -237,8 +349,8 @@
 
     <!-- Mobile/Tablet Offcanvas Sidebar -->
     <div class="offcanvas offcanvas-start sidebar-offcanvas d-lg-none" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
-        <div class="offcanvas-header pb-2 border-bottom border-secondary">
-            <div class="d-flex align-items-center gap-2.5">
+        <div class="offcanvas-header">
+            <div class="d-flex align-items-center gap-2">
                 <div class="sidebar-brand-mark">
                     <i class="bi bi-grid-3x3-gap-fill text-white"></i>
                 </div>
@@ -247,7 +359,7 @@
                     <span class="sidebar-brand-subtitle">College of Business Administration</span>
                 </div>
             </div>
-            <button type="button" class="btn-close text-reset mb-1" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body p-0">
             {% include 'includes/sidebar_nav.html' %}
@@ -257,15 +369,15 @@
     <!-- Main Content Area -->
     <div id="main-content">
         
-        <!-- Top Navbar -->
+        <!-- Modern Workspace Top Navbar -->
         <header class="navbar navbar-top sticky-top px-3 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                <!-- Hamburger button for Mobile/Tablet -->
-                <button class="btn btn-outline-secondary d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Toggle Navigation Menu">
-                    <i class="bi bi-list"></i>
+                <!-- Hamburger button for Mobile/Tablet (Min touch target compliant) -->
+                <button class="topbar-menu-btn d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Toggle Navigation Menu">
+                    <i class="bi bi-list fs-5"></i>
                 </button>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-slate-100 text-slate-700 border border-slate-200 d-none d-sm-inline-block font-mono fs-xs">NORSU CBA</span>
+                    <span class="topbar-badge font-mono d-none d-sm-inline-block">NORSU CBA</span>
                     <h1 class="h6 mb-0 text-truncate fw-bold text-dark">{% block page_title %}Dashboard{% endblock %}</h1>
                 </div>
             </div>
@@ -276,7 +388,7 @@
                     <i class="bi bi-person-circle fs-5 me-2 text-secondary"></i>
                     <span class="d-none d-md-inline small fw-semibold">{{ user.get_full_name|default:user.username }}</span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border border-light-subtle" aria-labelledby="userDropdown">
                     <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key me-2 text-secondary"></i>Change Password</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
@@ -301,7 +413,7 @@
         </main>
 
         <!-- Footer -->
-        <footer class="text-center py-3 text-muted small mt-auto">
+        <footer class="text-center py-3 text-muted small mt-auto border-top border-light-subtle">
             &copy; {% now "Y" %} CBA Asset &amp; Inventory Management System &bull; College of Business Administration
         </footer>
 

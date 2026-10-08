@@ -1,74 +1,116 @@
 /* ==========================================================================
-   CBA IMS - Canonical Design System & Responsive Styles (DESIGN.md)
-   Phase 0: Design System Tokens & Shared Partials
+   CBA IMS - Canonical Design System & Responsive Styles (DESIGN.md v2.0)
+   Modern Workspace Direction: Light Neutral Shell, Institutional Craftsmanship
    ========================================================================== */
 
 :root {
-    /* Primary & Brand (Institutional Navy) */
-    --cba-primary: #1e3a8a;
-    --cba-primary-hover: #172554;
-    --cba-primary-light: #eff6ff;
-    
-    /* Surfaces */
+    /* 2.1 Canvas, Surface & Shell Tokens */
+    --cba-canvas-bg: #f8fafc;
     --cba-surface-bg: #f8fafc;
     --cba-surface-card: #ffffff;
     --cba-surface-subtle: #f1f5f9;
-    
-    /* Borders */
+    --cba-surface-hover: #f8fafc;
+    --cba-sidebar-bg: #f8fafc;
+    --cba-sidebar-border: #e2e8f0;
+    --cba-topbar-bg: #ffffff;
+    --cba-topbar-border: #e2e8f0;
     --cba-border-subtle: #e2e8f0;
     --cba-border-medium: #cbd5e1;
-    --cba-border-dark: #94a3b8;
-    
-    /* Typography */
+    --cba-border-focus: #2563eb;
+
+    /* 2.2 Primary Brand & Interactive Tokens */
+    --cba-primary: #1d4ed8;
+    --cba-primary-hover: #1e40af;
+    --cba-primary-light: #eff6ff;
+    --cba-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    --cba-danger: #dc2626;
+    --cba-danger-hover: #b91c1c;
+    --cba-focus-ring-danger: 0 0 0 3px rgba(220, 38, 38, 0.18);
+
+    /* 2.3 Text & Typography Tokens */
     --cba-text-primary: #0f172a;
     --cba-text-secondary: #475569;
     --cba-text-muted: #64748b;
     --cba-text-inverted: #ffffff;
-    
-    /* Semantic Colors (DESIGN.md Section 2.3) */
+    --cba-sidebar-text: #475569;
+    --cba-sidebar-text-active: #1d4ed8;
+
+    /* 2.4 Semantic & Status Tokens (Subtle Tint + 1px Border + Dark Text) */
+    /* Available / Healthy / Approved (Emerald) */
     --cba-status-available-bg: #f0fdf4;
-    --cba-status-available-text: #15803d;
     --cba-status-available-border: #bbf7d0;
+    --cba-status-available-text: #166534;
 
-    --cba-status-assigned-bg: #f0f9ff;
-    --cba-status-assigned-text: #0369a1;
-    --cba-status-assigned-border: #bae6fd;
+    /* Warning / Maintenance / Low Stock (Amber) */
+    --cba-status-warning-bg: #fffbeb;
+    --cba-status-warning-border: #fde68a;
+    --cba-status-warning-text: #92400e;
 
-    --cba-status-borrowed-bg: #f1f5f9;
-    --cba-status-borrowed-text: #334155;
-    --cba-status-borrowed-border: #cbd5e1;
-
-    --cba-status-maintenance-bg: #fffbeb;
-    --cba-status-maintenance-text: #b45309;
-    --cba-status-maintenance-border: #fde68a;
-
+    /* Critical / Damaged / Overdue / Rejected (Red) */
     --cba-status-critical-bg: #fef2f2;
-    --cba-status-critical-text: #b91c1c;
     --cba-status-critical-border: #fecaca;
+    --cba-status-critical-text: #991b1b;
 
+    /* Assigned / In Circulation / Transferred (Blue) */
+    --cba-status-assigned-bg: #eff6ff;
+    --cba-status-assigned-border: #bfdbfe;
+    --cba-status-assigned-text: #1e40af;
+
+    /* Borrowed / Active Loan (Slate/Neutral) */
+    --cba-status-borrowed-bg: #f1f5f9;
+    --cba-status-borrowed-border: #cbd5e1;
+    --cba-status-borrowed-text: #334155;
+
+    /* Transferred / Movement (Indigo) */
     --cba-status-transferred-bg: #eef2ff;
-    --cba-status-transferred-text: #4338ca;
     --cba-status-transferred-border: #c7d2fe;
+    --cba-status-transferred-text: #4338ca;
 
-    --cba-status-archived-bg: #f4f4f5;
-    --cba-status-archived-text: #52525b;
-    --cba-status-archived-border: #d4d4d8;
-
-    /* Danger Button */
-    --cba-danger: #dc2626;
-    --cba-danger-hover: #b91c1c;
-    
-    /* Focus Ring */
-    --cba-focus-ring: 0 0 0 3px rgba(30, 58, 138, 0.15);
-    --cba-focus-ring-danger: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    /* Archived / Disposed / Retired (Slate) */
+    --cba-status-archived-bg: #f8fafc;
+    --cba-status-archived-border: #e2e8f0;
+    --cba-status-archived-text: #475569;
 }
 
-/* --- Global Resets & Typography --- */
+/* ==========================================================================
+   Global Resets, Typography & Baseline Craft
+   ========================================================================== */
 body {
-    background-color: var(--cba-surface-bg);
+    background-color: var(--cba-canvas-bg);
     color: var(--cba-text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Hierarchy (DESIGN.md v2.0 Section 3.2) */
+h1, .h1 {
+    font-size: 1.375rem; /* 22px */
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    color: var(--cba-text-primary);
+}
+h2, .h2 {
+    font-size: 1.1875rem; /* 19px */
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--cba-text-primary);
+}
+h3, .h3 {
+    font-size: 1.0625rem; /* 17px */
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--cba-text-primary);
+}
+h4, .h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--cba-text-primary);
 }
 
 /* Monospace font for asset identifiers & timestamps */
@@ -76,13 +118,13 @@ body {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
-/* Reusable Asset/Property Code Identifier */
+/* Reusable Asset/Property Code Identifier (DESIGN.md Section 5.1) */
 .cba-code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--cba-primary);
-    background-color: #f1f5f9;
+    background-color: var(--cba-surface-subtle);
     padding: 0.125rem 0.4rem;
     border-radius: 4px;
     border: 1px solid var(--cba-border-subtle);
@@ -97,7 +139,7 @@ body {
 .lh-sm { line-height: 1.25 !important; }
 .tracking-tight { letter-spacing: -0.015em !important; }
 .tracking-wider { letter-spacing: 0.05em !important; }
-.border-bottom-subtle { border-bottom: 1px solid #f1f5f9 !important; }
+.border-bottom-subtle { border-bottom: 1px solid var(--cba-border-subtle) !important; }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -106,16 +148,17 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ==========================================================================
-   Action Buttons (DESIGN.md Section 2.4)
+   Action Buttons (DESIGN.md v2.0 Section 5.2)
    ========================================================================== */
 
 .btn-primary-cba {
-    background-color: #1e3a8a !important;
-    border: 1px solid #1e3a8a !important;
+    background-color: var(--cba-primary) !important;
+    border: 1px solid var(--cba-primary) !important;
     color: #ffffff !important;
     font-weight: 600;
     font-size: 0.875rem;
-    padding: 0.45rem 1rem;
+    padding: 0.4rem 0.95rem;
+    min-height: 36px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
@@ -126,10 +169,10 @@ body {
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-primary-cba:hover, .btn-primary-cba:focus {
-    background-color: #172554 !important;
-    border-color: #172554 !important;
+    background-color: var(--cba-primary-hover) !important;
+    border-color: var(--cba-primary-hover) !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 .btn-primary-cba:focus-visible {
     outline: none;
@@ -138,11 +181,12 @@ body {
 
 .btn-secondary-cba {
     background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #0f172a !important;
+    border: 1px solid var(--cba-border-medium) !important;
+    color: var(--cba-text-primary) !important;
     font-weight: 500;
     font-size: 0.875rem;
-    padding: 0.45rem 0.95rem;
+    padding: 0.4rem 0.95rem;
+    min-height: 36px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
@@ -153,10 +197,10 @@ body {
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-secondary-cba:hover, .btn-secondary-cba:focus {
-    background-color: #f1f5f9 !important;
+    background-color: var(--cba-surface-hover) !important;
     border-color: #94a3b8 !important;
-    color: #0f172a !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    color: var(--cba-text-primary) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .btn-secondary-cba:focus-visible {
     outline: none;
@@ -164,12 +208,13 @@ body {
 }
 
 .btn-danger-cba {
-    background-color: #dc2626 !important;
-    border: 1px solid #dc2626 !important;
+    background-color: var(--cba-danger) !important;
+    border: 1px solid var(--cba-danger) !important;
     color: #ffffff !important;
     font-weight: 600;
     font-size: 0.875rem;
-    padding: 0.45rem 1rem;
+    padding: 0.4rem 0.95rem;
+    min-height: 36px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
@@ -180,10 +225,10 @@ body {
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-danger-cba:hover, .btn-danger-cba:focus {
-    background-color: #b91c1c !important;
-    border-color: #b91c1c !important;
+    background-color: var(--cba-danger-hover) !important;
+    border-color: var(--cba-danger-hover) !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 .btn-danger-cba:focus-visible {
     outline: none;
@@ -192,11 +237,12 @@ body {
 
 .btn-outline-cba {
     background-color: transparent !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #475569 !important;
+    border: 1px solid var(--cba-border-medium) !important;
+    color: var(--cba-text-secondary) !important;
     font-weight: 500;
     font-size: 0.875rem;
-    padding: 0.45rem 0.95rem;
+    padding: 0.4rem 0.95rem;
+    min-height: 36px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
@@ -206,23 +252,24 @@ body {
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .btn-outline-cba:hover, .btn-outline-cba:focus {
-    background-color: #f8fafc !important;
+    background-color: var(--cba-surface-hover) !important;
     border-color: #94a3b8 !important;
-    color: #0f172a !important;
+    color: var(--cba-text-primary) !important;
 }
 
 /* ==========================================================================
-   Semantic Status Chips & Badges (DESIGN.md Section 2.3)
+   Semantic Status Chips & Badges (DESIGN.md v2.0 Section 2.4 & 5.1)
+   Formula: Subtle tint background + 1px border + dark semantic text + 4px radius
    ========================================================================== */
 
 .cba-status, .status-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    line-height: 1.25;
-    padding: 0.2rem 0.55rem;
+    line-height: 1.3;
+    padding: 2px 8px;
     border-radius: 4px;
     border: 1px solid transparent;
     white-space: nowrap;
@@ -237,7 +284,7 @@ body {
     flex-shrink: 0;
 }
 
-/* 1. Available / Unassigned / In Stock */
+/* 1. Available / Healthy / Approved (Emerald) */
 .status-available, .cba-status-available {
     background-color: var(--cba-status-available-bg) !important;
     color: var(--cba-status-available-text) !important;
@@ -247,17 +294,17 @@ body {
     background-color: #16a34a;
 }
 
-/* 2. Assigned / In Use */
+/* 2. Assigned / In Use (Blue) */
 .status-assigned, .cba-status-assigned {
     background-color: var(--cba-status-assigned-bg) !important;
     color: var(--cba-status-assigned-text) !important;
     border-color: var(--cba-status-assigned-border) !important;
 }
 .status-assigned .cba-status-dot, .cba-status-assigned .cba-status-dot {
-    background-color: #0284c7;
+    background-color: #2563eb;
 }
 
-/* 3. Borrowed / Active Loan */
+/* 3. Borrowed / Active Loan (Slate/Neutral) */
 .status-borrowed, .cba-status-borrowed {
     background-color: var(--cba-status-borrowed-bg) !important;
     color: var(--cba-status-borrowed-text) !important;
@@ -267,17 +314,17 @@ body {
     background-color: #475569;
 }
 
-/* 4. Maintenance / In Repair */
+/* 4. Maintenance / In Repair (Amber) */
 .status-maintenance, .cba-status-maintenance {
-    background-color: var(--cba-status-maintenance-bg) !important;
-    color: var(--cba-status-maintenance-text) !important;
-    border-color: var(--cba-status-maintenance-border) !important;
+    background-color: var(--cba-status-warning-bg) !important;
+    color: var(--cba-status-warning-text) !important;
+    border-color: var(--cba-status-warning-border) !important;
 }
 .status-maintenance .cba-status-dot, .cba-status-maintenance .cba-status-dot {
     background-color: #d97706;
 }
 
-/* 5. Critical / Damaged / Overdue / Lost */
+/* 5. Critical / Damaged / Overdue / Lost (Red) */
 .status-critical, .status-damaged, .status-overdue, .cba-status-critical, .cba-status-danger {
     background-color: var(--cba-status-critical-bg) !important;
     color: var(--cba-status-critical-text) !important;
@@ -287,17 +334,17 @@ body {
     background-color: #dc2626;
 }
 
-/* 6. Warning / Low Stock / Pending Review */
+/* 6. Warning / Low Stock / Pending Review (Amber) */
 .status-warning, .status-low-stock, .cba-status-warning {
-    background-color: #fffbeb !important;
-    color: #b45309 !important;
-    border-color: #fde68a !important;
+    background-color: var(--cba-status-warning-bg) !important;
+    color: var(--cba-status-warning-text) !important;
+    border-color: var(--cba-status-warning-border) !important;
 }
 .status-warning .cba-status-dot, .cba-status-warning .cba-status-dot {
     background-color: #d97706;
 }
 
-/* 7. Transferred / Movement */
+/* 7. Transferred / Movement (Indigo) */
 .status-transferred, .cba-status-transferred {
     background-color: var(--cba-status-transferred-bg) !important;
     color: var(--cba-status-transferred-text) !important;
@@ -307,7 +354,7 @@ body {
     background-color: #4f46e5;
 }
 
-/* 8. Archived / Disposed / Inactive */
+/* 8. Archived / Disposed / Inactive (Slate) */
 .status-archived, .status-disposed, .status-inactive, .cba-status-archived, .cba-status-muted {
     background-color: var(--cba-status-archived-bg) !important;
     color: var(--cba-status-archived-text) !important;
@@ -317,27 +364,31 @@ body {
     background-color: #71717a;
 }
 
-/* Condition Badges (DESIGN.md Section 2.3) */
+/* Condition Badges */
 .condition-new, .cba-condition-new,
 .condition-good, .cba-condition-good {
     background-color: #f0fdf4 !important;
-    color: #15803d !important;
+    color: #166534 !important;
     border: 1px solid #bbf7d0 !important;
+    border-radius: 4px;
 }
 .condition-fair, .cba-condition-fair {
-    background-color: #f0f9ff !important;
-    color: #0369a1 !important;
-    border: 1px solid #bae6fd !important;
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 4px;
 }
 .condition-poor, .cba-condition-poor {
     background-color: #fffbeb !important;
-    color: #b45309 !important;
+    color: #92400e !important;
     border: 1px solid #fde68a !important;
+    border-radius: 4px;
 }
 .condition-unserviceable, .cba-condition-unserviceable {
     background-color: #fef2f2 !important;
-    color: #b91c1c !important;
+    color: #991b1b !important;
     border: 1px solid #fecaca !important;
+    border-radius: 4px;
 }
 
 /* ==========================================================================
@@ -356,7 +407,7 @@ body {
 .page-header h1, .page-header .h3 {
     margin-bottom: 0.15rem;
     font-weight: 700;
-    font-size: 1.25rem;
+    font-size: 1.375rem; /* 22px */
     color: var(--cba-text-primary);
     letter-spacing: -0.015em;
     line-height: 1.3;
@@ -388,19 +439,19 @@ body {
 }
 
 /* ==========================================================================
-   Institutional Panels & Card Components
+   Institutional Panels & Card Components (DESIGN.md v2.0 Section 5.4)
    ========================================================================== */
 
 .cba-panel {
     background: #ffffff;
     border: 1px solid var(--cba-border-subtle);
-    border-radius: 6px;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
     margin-bottom: 1.25rem;
     overflow: hidden;
 }
 .cba-panel-header, .panel-header-cba {
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
     border-bottom: 1px solid var(--cba-border-subtle);
     background-color: #ffffff;
     display: flex;
@@ -409,7 +460,7 @@ body {
     gap: 0.5rem;
 }
 .cba-panel-title, .panel-title-cba {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--cba-text-primary);
     margin: 0;
@@ -446,16 +497,16 @@ body {
     text-decoration: underline;
 }
 
-/* Restrained KPI Cards (Dashboard Reference) */
+/* Restrained KPI Cards (DESIGN.md Section 5.5) */
 .kpi-card {
     background: #ffffff !important;
     border: 1px solid var(--cba-border-subtle) !important;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 1rem 1.15rem;
     height: 100%;
     min-height: 116px;
     position: relative;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -468,38 +519,39 @@ body {
     margin-bottom: 0.35rem;
 }
 .kpi-card .kpi-label {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.6875rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #475569;
+    color: var(--cba-text-secondary);
 }
 .kpi-card .kpi-icon {
     font-size: 1.1rem;
-    color: #94a3b8;
+    color: var(--cba-text-muted);
 }
 .kpi-card .kpi-value {
-    font-size: 1.75rem;
+    font-size: 1.625rem; /* 26px Metric */
     font-weight: 700;
-    line-height: 1.15;
-    color: #0f172a;
+    line-height: 1.2;
+    color: var(--cba-text-primary);
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
     margin-bottom: 0.2rem;
 }
 .kpi-card .kpi-desc {
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--cba-text-muted);
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-top: 0.35rem;
     padding-top: 0.35rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--cba-surface-subtle);
 }
 .kpi-card .kpi-link-label {
     font-size: 0.72rem;
     font-weight: 600;
-    color: #1e3a8a;
+    color: var(--cba-primary);
     display: inline-flex;
     align-items: center;
 }
@@ -507,7 +559,7 @@ body {
     cursor: pointer;
 }
 .kpi-card.kpi-interactive:hover {
-    border-color: #cbd5e1 !important;
+    border-color: var(--cba-border-medium) !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 .kpi-card.kpi-interactive:hover .kpi-link-label {
@@ -519,10 +571,10 @@ body {
         min-height: 104px;
     }
     .kpi-card .kpi-value {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
     .kpi-card .kpi-label {
-        font-size: 0.68rem;
+        font-size: 0.65rem;
     }
     .kpi-card .kpi-icon {
         font-size: 1rem;
@@ -540,7 +592,7 @@ body {
 .activity-dot.badge-theme-success { background-color: #16a34a; }
 .activity-dot.badge-theme-warning { background-color: #d97706; }
 .activity-dot.badge-theme-danger { background-color: #dc2626; }
-.activity-dot.badge-theme-info { background-color: #0284c7; }
+.activity-dot.badge-theme-info { background-color: #2563eb; }
 
 /* Charts & Visual Analytics */
 .chart-card-body {
@@ -555,21 +607,23 @@ body {
     width: 100%;
 }
 
-/* Legacy stat-card compatibility */
+/* Stat-card compatibility */
 .stat-card {
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid var(--cba-border-subtle);
     box-shadow: 0 1px 2px 0 rgba(0,0,0,.04);
+    background-color: #ffffff;
 }
 
 /* ==========================================================================
-   Standardized Data Tables & Responsive Records
+   Standardized Data Tables (DESIGN.md v2.0 Section 5.3)
+   Modern CRM/Database Style: Quiet Headers, Hairline Separators, No Zebra
    ========================================================================== */
 
 .cba-table-container {
     background: #ffffff;
     border: 1px solid var(--cba-border-subtle);
-    border-radius: 6px;
+    border-radius: 8px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 1.25rem;
@@ -581,22 +635,24 @@ body {
 }
 .cba-data-table th, .cba-table th, .table th {
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.6875rem; /* 11px Eyebrow */
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: var(--cba-text-secondary);
-    background-color: var(--cba-surface-subtle);
-    padding: 0.65rem 0.85rem;
-    border-bottom: 1px solid var(--cba-border-medium);
+    background-color: var(--cba-surface-bg);
+    padding: 0.55rem 0.85rem;
+    border-bottom: 1px solid var(--cba-border-subtle) !important;
     white-space: nowrap;
     vertical-align: middle;
+    height: 38px;
 }
 .cba-data-table td, .cba-table td, .table td {
-    padding: 0.7rem 0.85rem;
+    padding: 0.6rem 0.85rem;
     vertical-align: middle;
     color: var(--cba-text-primary);
-    font-size: 0.84rem;
-    border-bottom: 1px solid var(--cba-border-subtle);
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--cba-surface-subtle);
+    background-color: transparent;
 }
 .cba-data-table tbody tr:last-child td,
 .cba-table tbody tr:last-child td {
@@ -605,17 +661,21 @@ body {
 .cba-data-table tbody tr:hover td,
 .cba-table tbody tr:hover td,
 .table-hover tbody tr:hover td {
-    background-color: #f8fafc;
+    background-color: var(--cba-surface-hover) !important;
+}
+.table-active td, .cba-table tr.selected td {
+    background-color: var(--cba-primary-light) !important;
 }
 .table-responsive {
     -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
 }
 
-/* Mobile Card List (Used when horizontal table scrolling degrades usability) */
+/* Mobile Card List (Reflow pattern for mobile) */
 .mobile-card-list .mobile-card {
     background: #ffffff;
     border: 1px solid var(--cba-border-subtle);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.85rem;
     margin-bottom: 0.65rem;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
@@ -634,7 +694,7 @@ body {
 .cba-filter-bar, .search-filter-bar {
     background: #ffffff;
     border: 1px solid var(--cba-border-subtle);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     display: flex;
@@ -699,8 +759,8 @@ body {
     flex-direction: column;
 }
 .cba-meta-label {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.6875rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--cba-text-muted);
@@ -717,8 +777,16 @@ body {
    Form Controls, Sections & Action Footers
    ========================================================================== */
 
+.form-control, .form-select {
+    border: 1px solid var(--cba-border-medium);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--cba-text-primary);
+    min-height: 38px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 .form-control:focus, .form-select:focus {
-    border-color: var(--cba-primary);
+    border-color: var(--cba-border-focus);
     box-shadow: var(--cba-focus-ring);
 }
 .form-label {
@@ -739,8 +807,8 @@ body {
     border-bottom: none;
 }
 .cba-form-section-title {
-    font-size: 0.875rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--cba-text-primary);
     margin-bottom: 0.25rem;
     letter-spacing: -0.01em;
@@ -808,7 +876,7 @@ body {
     font-size: 2.25rem;
     margin-bottom: 0.65rem;
     color: var(--cba-text-muted);
-    opacity: 0.5;
+    opacity: 0.6;
     display: block;
 }
 .cba-empty-state-title {
@@ -825,12 +893,12 @@ body {
 }
 
 /* ==========================================================================
-   System Alerts & Messages (DESIGN.md Section 2.3)
+   System Alerts & Messages (DESIGN.md v2.0 Section 2.4)
    ========================================================================== */
 
 .cba-alert {
     padding: 0.75rem 1rem;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.8125rem;
     display: flex;
     align-items: flex-start;
@@ -848,28 +916,28 @@ body {
     font-size: 0.75rem;
 }
 .cba-alert-success, .alert-success {
-    background-color: #f0fdf4 !important;
-    color: #15803d !important;
-    border-color: #bbf7d0 !important;
+    background-color: var(--cba-status-available-bg) !important;
+    color: var(--cba-status-available-text) !important;
+    border-color: var(--cba-status-available-border) !important;
 }
 .cba-alert-info, .alert-info {
-    background-color: #f0f9ff !important;
-    color: #0369a1 !important;
-    border-color: #bae6fd !important;
+    background-color: var(--cba-status-assigned-bg) !important;
+    color: var(--cba-status-assigned-text) !important;
+    border-color: var(--cba-status-assigned-border) !important;
 }
 .cba-alert-warning, .alert-warning {
-    background-color: #fffbeb !important;
-    color: #b45309 !important;
-    border-color: #fde68a !important;
+    background-color: var(--cba-status-warning-bg) !important;
+    color: var(--cba-status-warning-text) !important;
+    border-color: var(--cba-status-warning-border) !important;
 }
 .cba-alert-danger, .cba-alert-error, .alert-danger {
-    background-color: #fef2f2 !important;
-    color: #b91c1c !important;
-    border-color: #fecaca !important;
+    background-color: var(--cba-status-critical-bg) !important;
+    color: var(--cba-status-critical-text) !important;
+    border-color: var(--cba-status-critical-border) !important;
 }
 
 /* ==========================================================================
-   Pagination Controls
+   Pagination Controls (DESIGN.md v2.0)
    ========================================================================== */
 
 .cba-pagination {
@@ -888,8 +956,8 @@ body {
     color: var(--cba-text-secondary);
     background-color: #ffffff;
     border: 1px solid var(--cba-border-medium);
-    border-radius: 4px;
-    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
     min-height: 36px;
     min-width: 36px;
     display: inline-flex;
@@ -899,7 +967,7 @@ body {
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .cba-pagination .page-item .page-link:hover {
-    background-color: var(--cba-surface-subtle);
+    background-color: var(--cba-surface-hover);
     color: var(--cba-text-primary);
     border-color: #94a3b8;
 }
@@ -910,8 +978,8 @@ body {
     font-weight: 600;
 }
 .cba-pagination .page-item.disabled .page-link {
-    background-color: #f8fafc;
-    color: #94a3b8;
+    background-color: var(--cba-surface-hover);
+    color: var(--cba-text-muted);
     border-color: var(--cba-border-subtle);
     cursor: not-allowed;
     opacity: 0.7;
@@ -922,8 +990,8 @@ body {
    ========================================================================== */
 
 .cba-modal .modal-content {
-    border-radius: 6px;
-    border: 1px solid var(--cba-border-medium);
+    border-radius: 8px;
+    border: 1px solid var(--cba-border-subtle);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 .cba-modal .modal-header {
@@ -933,7 +1001,7 @@ body {
 }
 .cba-modal .modal-title {
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--cba-text-primary);
 }
 .cba-modal .modal-body {
@@ -997,7 +1065,7 @@ body {
     margin: 3.5rem auto 0.35rem auto;
 }
 
-/* Official Logo Asset Display (Aspect-ratio preserved, no distortion) */
+/* Official Logo Asset Display */
 .cba-brand-asset {
     max-height: 48px;
     width: auto;
@@ -1043,4 +1111,106 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 9999;
+}
+
+/* ==========================================================================
+   Modern Workspace Shell & Navigation Foundation (DESIGN.md v2.0)
+   Authoritative Shell Rules: Light Neutral Sidebar, White Topbar, Pill Active State
+   ========================================================================== */
+
+#desktop-sidebar, .sidebar {
+    background-color: var(--cba-sidebar-bg) !important;
+    border-right: 1px solid var(--cba-sidebar-border) !important;
+    color: var(--cba-text-primary) !important;
+}
+
+.sidebar-brand {
+    background: #ffffff !important;
+    border-bottom: 1px solid var(--cba-sidebar-border) !important;
+    color: var(--cba-text-primary) !important;
+}
+
+.sidebar-brand-mark {
+    background: var(--cba-primary) !important;
+    border: 1px solid var(--cba-primary-hover) !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+}
+
+.sidebar-brand-title {
+    color: var(--cba-text-primary) !important;
+}
+
+.sidebar-brand-subtitle {
+    color: var(--cba-text-muted) !important;
+}
+
+.sidebar-nav {
+    padding: 8px 8px 28px !important;
+}
+
+.sidebar-nav .nav-section {
+    color: var(--cba-text-muted) !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.sidebar-nav .nav-link {
+    color: var(--cba-sidebar-text) !important;
+    font-size: 0.84rem !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    border-left: none !important;
+    transition: background-color 0.12s ease, color 0.12s ease !important;
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: var(--cba-text-primary) !important;
+    background-color: var(--cba-surface-subtle) !important;
+}
+
+.sidebar-nav .nav-link.active {
+    color: var(--cba-sidebar-text-active) !important;
+    background-color: var(--cba-primary-light) !important;
+    font-weight: 600 !important;
+    border-left: none !important;
+}
+
+.sidebar-nav .nav-link i {
+    color: var(--cba-text-muted) !important;
+}
+
+.sidebar-nav .nav-link:hover i {
+    color: var(--cba-text-primary) !important;
+}
+
+.sidebar-nav .nav-link.active i {
+    color: var(--cba-sidebar-text-active) !important;
+}
+
+.offcanvas.sidebar-offcanvas {
+    background-color: var(--cba-sidebar-bg) !important;
+    border-right: 1px solid var(--cba-sidebar-border) !important;
+    color: var(--cba-text-primary) !important;
+}
+
+.offcanvas.sidebar-offcanvas .offcanvas-header {
+    background: #ffffff !important;
+    border-bottom: 1px solid var(--cba-sidebar-border) !important;
+}
+
+.offcanvas.sidebar-offcanvas .btn-close {
+    filter: none !important;
+    opacity: 0.6 !important;
+}
+
+.navbar-top {
+    background-color: var(--cba-topbar-bg) !important;
+    border-bottom: 1px solid var(--cba-topbar-border) !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
 }

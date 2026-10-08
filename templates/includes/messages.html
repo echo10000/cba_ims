@@ -1,14 +1,14 @@
 {% if messages %}
-<div class="messages-container my-3" aria-live="polite">
+<div class="messages-container mb-3" aria-live="polite">
     {% for message in messages %}
         <div class="alert {% if message.tags == 'error' or message.tags == 'danger' %}alert-danger cba-alert-danger{% elif message.tags == 'success' %}alert-success cba-alert-success{% elif message.tags == 'warning' %}alert-warning cba-alert-warning{% else %}alert-info cba-alert-info{% endif %} cba-alert alert-dismissible fade show" role="alert">
             <span class="cba-alert-icon">
                 {% if message.tags == 'error' or message.tags == 'danger' %}
-                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                    <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
                 {% elif message.tags == 'success' %}
                     <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
                 {% elif message.tags == 'warning' %}
-                    <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
                 {% else %}
                     <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
                 {% endif %}

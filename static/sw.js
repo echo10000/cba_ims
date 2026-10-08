@@ -3,7 +3,7 @@
 // Authenticated HTML responses and HTMX partial fragments are NEVER cached
 // to prevent private data from appearing in offline mode or leaking across users.
 
-const VERSION = 'cba-ims-v4';
+const VERSION = 'cba-ims-v5';
 const CACHE_NAME = `${VERSION}-static`;
 const OFFLINE_URL = '/static/offline.html';
 
@@ -102,6 +102,6 @@ self.addEventListener('fetch', function(event) {
         return;
     }
 
-    // All other requests: straight network
+    // Default: network only
     event.respondWith(fetch(event.request));
 });
