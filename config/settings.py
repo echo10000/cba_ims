@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'apps.disposals',
     'apps.reports',
     'apps.audit',
+    'apps.student_reservations',
 ]
 
 MIDDLEWARE = [

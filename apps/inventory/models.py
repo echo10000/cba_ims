@@ -46,6 +46,10 @@ class AssetCategory(models.Model):
     code = models.CharField(max_length=10, unique=True, help_text='Short code for asset numbering, e.g. IT, FN, OE')
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    is_reservable = models.BooleanField(
+        default=True,
+        help_text='Designates whether equipment in this category can be reserved by students.'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -121,6 +125,10 @@ class Asset(models.Model):
     )
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.NEW)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.AVAILABLE)
+    is_reservable = models.BooleanField(
+        default=True,
+        help_text='Designates whether this specific physical asset can be reserved by students.'
+    )
     asset_image = models.ImageField(
         upload_to='assets/%Y/%m/',
         null=True,

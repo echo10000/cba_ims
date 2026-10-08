@@ -31,6 +31,40 @@ def check_reservation_conflict(asset, requested_start, requested_return, exclude
     return qs
 
 
+def check_student_reservation_conflict(asset, requested_start, requested_return):
+    """
+    Checks if an asset has overlapping approved/active student reservations or guard returns.
+    Shared availability rule to prevent faculty borrowing bypassing student reservations.
+    """
+    from apps.student_reservations.models import StudentReservation
+    from apps.student_reservations.services import auto_expire_uncollected_reservations
+    auto_expire_uncollected_reservations()
+
+    # Guard-returned equipment awaiting inspection blocks the asset
+    guard_qs = StudentReservation.objects.filter(
+        asset=asset,
+        status=StudentReservation.Status.RETURNED_TO_GUARD
+    )
+    if guard_qs.exists():
+        return guard_qs
+
+    qs = StudentReservation.objects.filter(
+        asset=asset,
+        status__in=[
+            StudentReservation.Status.APPROVED,
+            StudentReservation.Status.RELEASED
+        ],
+        requested_pickup__lt=requested_return,
+        requested_return__gt=requested_start
+    )
+    # Exclude expired uncollected approved reservations
+    valid_ids = [
+        res.pk for res in qs
+        if not (res.status == StudentReservation.Status.APPROVED and res.is_pickup_expired)
+    ]
+    return StudentReservation.objects.filter(pk__in=valid_ids)
+
+
 def request_borrowing(
     asset,
     borrower,
@@ -85,6 +119,19 @@ def request_borrowing(
         raise ValidationError(
             f"Reservation conflict: Asset '{asset.asset_code}' is already reserved/borrowed by "
             f"{c.borrower.full_name} from {c.requested_start:%Y-%m-%d %H:%M} to {c.requested_return:%Y-%m-%d %H:%M}."
+        )
+
+    # 5b. Overlapping student reservation check
+    student_conflicts = check_student_reservation_conflict(asset, requested_start, requested_return)
+    if student_conflicts.exists():
+        sc = student_conflicts.first()
+        if sc.status == 'RETURNED_TO_GUARD':
+            raise ValidationError(
+                f"Asset '{asset.asset_code}' was returned to a security guard and is awaiting CBA inspection."
+            )
+        raise ValidationError(
+            f"Reservation conflict: Asset '{asset.asset_code}' is already reserved for a student "
+            f"({sc.student_name} from {sc.requested_pickup:%Y-%m-%d %H:%M} to {sc.requested_return:%Y-%m-%d %H:%M})."
         )
 
     # 6. Borrower validation
@@ -167,6 +214,22 @@ def approve_borrowing(borrowing, reviewed_by, remarks='', request=None):
             raise ValidationError(
                 f"Cannot approve: Asset '{locked_asset.asset_code}' conflicts with an existing reservation by "
                 f"{c.borrower.full_name} ({c.requested_start:%Y-%m-%d %H:%M} to {c.requested_return:%Y-%m-%d %H:%M})."
+            )
+
+        student_conflicts = check_student_reservation_conflict(
+            locked_asset,
+            locked_borrowing.requested_start,
+            locked_borrowing.requested_return
+        )
+        if student_conflicts.exists():
+            sc = student_conflicts.first()
+            if sc.status == 'RETURNED_TO_GUARD':
+                raise ValidationError(
+                    f"Cannot approve: Asset '{locked_asset.asset_code}' was returned to a security guard and is awaiting CBA inspection."
+                )
+            raise ValidationError(
+                f"Cannot approve: Asset '{locked_asset.asset_code}' conflicts with an existing student reservation by "
+                f"{sc.student_name} ({sc.requested_pickup:%Y-%m-%d %H:%M} to {sc.requested_return:%Y-%m-%d %H:%M})."
             )
 
         locked_borrowing.status = AssetBorrowing.Status.APPROVED
@@ -306,6 +369,15 @@ def release_asset(borrowing, released_by, condition_at_release=None, remarks='',
         ).exclude(pk=locked_borrowing.pk).exists():
             raise ValidationError(
                 f"Asset '{locked_asset.asset_code}' is already recorded as physically released on another active borrowing."
+            )
+
+        from apps.student_reservations.models import StudentReservation
+        if StudentReservation.objects.filter(
+            asset=locked_asset,
+            status__in=[StudentReservation.Status.RELEASED, StudentReservation.Status.RETURNED_TO_GUARD]
+        ).exists():
+            raise ValidationError(
+                f"Asset '{locked_asset.asset_code}' is currently physically released on a student reservation."
             )
 
         cond = condition_at_release or locked_asset.condition

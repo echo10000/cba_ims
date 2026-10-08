@@ -41,6 +41,38 @@ def assign_asset(
                 f"Asset '{locked_asset.asset_code}' already has an active assignment."
             )
 
+        # Ensure no active or approved student reservations exist
+        from apps.student_reservations.models import StudentReservation
+        from apps.student_reservations.services import auto_expire_uncollected_reservations
+        auto_expire_uncollected_reservations()
+
+        active_student_res = StudentReservation.objects.filter(
+            asset=locked_asset,
+            status__in=[
+                StudentReservation.Status.APPROVED,
+                StudentReservation.Status.RELEASED,
+                StudentReservation.Status.RETURNED_TO_GUARD
+            ]
+        )
+        valid_student_res = [
+            r for r in active_student_res
+            if not (r.status == StudentReservation.Status.APPROVED and r.is_pickup_expired)
+        ]
+        if valid_student_res:
+            raise ValidationError(
+                f"Asset '{locked_asset.asset_code}' has an approved or active student reservation and cannot be assigned."
+            )
+
+        # Ensure no active or approved borrowings exist
+        from apps.borrowing.models import AssetBorrowing
+        if AssetBorrowing.objects.filter(
+            asset=locked_asset,
+            status__in=[AssetBorrowing.Status.APPROVED, AssetBorrowing.Status.RELEASED, AssetBorrowing.Status.OVERDUE]
+        ).exists():
+            raise ValidationError(
+                f"Asset '{locked_asset.asset_code}' has an approved or active borrowing and cannot be assigned."
+            )
+
         # Ensure employee is active
         if not employee.is_active:
             raise ValidationError(

@@ -43,6 +43,7 @@ urlpatterns = [
     path('disposals/', include('apps.disposals.urls')),
     path('reports/', include('apps.reports.urls')),
     path('audit/', include('apps.audit.urls')),
+    path('student-reservations/', include('apps.student_reservations.urls')),
 ]
 
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
